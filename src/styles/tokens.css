@@ -1,0 +1,67 @@
+/* ============================================
+   SAMAKAL NEWS — Design Tokens
+   Extracted from samakal.com (2026-03-14)
+   ============================================ */
+
+:root {
+  /* ── Colors ── */
+  --color-bg:           #FFFFFF;
+  --color-bg-alt:       #F5F5F5;
+  --color-bg-dark:      #1a1a2e;
+  --color-bg-dark-2:    #222222;
+  --color-accent:       #F9B200;   /* Golden yellow — section markers, numbers */
+  --color-accent-dark:  #d99d00;
+  --color-accent-red:   #E53935;   /* Breaking news, live badge */
+  --color-link:         #C0392B;   /* Samakal red links */
+  --color-text:         #000000;
+  --color-text-body:    #333333;
+  --color-text-secondary: #555555;
+  --color-text-meta:    #888888;
+  --color-border:       #E0E0E0;
+  --color-border-dark:  #CCCCCC;
+  --color-white:        #FFFFFF;
+
+  /* ── Typography ── */
+  --font-headline: 'Noto Serif Bengali', 'SolaimanLipi', serif;
+  --font-body:     'Noto Sans Bengali', 'SolaimanLipi', sans-serif;
+  --font-ui:       'Inter', 'Noto Sans Bengali', sans-serif;
+
+  /* Font sizes */
+  --text-xs:   0.75rem;   /* 12px */
+  --text-sm:   0.875rem;  /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-md:   1.125rem;  /* 18px */
+  --text-lg:   1.25rem;   /* 20px */
+  --text-xl:   1.5rem;    /* 24px */
+  --text-2xl:  1.875rem;  /* 30px */
+  --text-3xl:  2.25rem;   /* 36px */
+
+  /* Line heights */
+  --leading-tight:  1.3;
+  --leading-normal: 1.6;
+  --leading-loose:  1.8;
+
+  /* ── Spacing ── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ── Layout ── */
+  --grid-max:     1280px;
+  --grid-gap:     24px;
+  --sidebar-w:    300px;
+  --border-radius: 4px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.12);
+
+  /* ── Transitions ── */
+  --transition: 0.2s ease;
+}

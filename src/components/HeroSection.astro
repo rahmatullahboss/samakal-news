@@ -1,0 +1,143 @@
+---
+// src/components/HeroSection.astro
+// Replicates samakal's "নির্বাচিত" featured section
+// Left: 1 large featured story | Right: 3 secondary stories | Far right: সর্বশেষ sidebar
+import ArticleCard from './ArticleCard.astro';
+
+interface Article {
+  title: string;
+  href: string;
+  image?: string;
+  category?: string;
+  categoryHref?: string;
+  excerpt?: string;
+}
+interface Props {
+  featured: Article;
+  secondary: Article[];
+  latest: { title: string; href: string; number: number }[];
+}
+
+const { featured, secondary, latest } = Astro.props;
+---
+
+<section class="hero-section">
+  <div class="container">
+    <div class="hero-section__grid">
+      <!-- Left: Large featured story -->
+      <div class="hero-section__featured">
+        <ArticleCard
+          title={featured.title}
+          href={featured.href}
+          image={featured.image}
+          category={featured.category}
+          categoryHref={featured.categoryHref}
+          excerpt={featured.excerpt}
+          variant="large"
+        />
+      </div>
+
+      <!-- Middle: 3 secondary stories -->
+      <div class="hero-section__secondary">
+        {secondary.map(article => (
+          <div class="hero-secondary__item">
+            <ArticleCard
+              title={article.title}
+              href={article.href}
+              image={article.image}
+              category={article.category}
+              categoryHref={article.categoryHref}
+              variant="horizontal"
+            />
+            <div class="divider" style="margin: var(--space-3) 0;" />
+          </div>
+        ))}
+      </div>
+
+      <!-- Right: সর্বশেষ (Latest) numbered sidebar -->
+      <aside class="hero-section__latest">
+        <div class="section-header" style="margin-bottom: var(--space-4);">
+          <h2>সর্বশেষ</h2>
+        </div>
+        <ol class="latest-list">
+          {latest.map(item => (
+            <li class="latest-list__item">
+              <span class="latest-list__num">{item.number}</span>
+              <a href={item.href} class="latest-list__title headline headline-sm">{item.title}</a>
+            </li>
+          ))}
+        </ol>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<style>
+.hero-section { padding: var(--space-5) 0; }
+.hero-section__grid {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr var(--sidebar-w);
+  gap: var(--grid-gap);
+  align-items: start;
+}
+.hero-section__secondary {
+  border-left: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+  padding: 0 var(--grid-gap);
+}
+.hero-secondary__item:last-child .divider { display: none; }
+
+/* সর্বশেষ latest list */
+.latest-list { display: flex; flex-direction: column; gap: 0; }
+.latest-list__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.latest-list__item:last-child { border-bottom: none; }
+.latest-list__num {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  color: var(--color-accent);
+  line-height: 1;
+  min-width: 24px;
+  flex-shrink: 0;
+  font-family: var(--font-body);
+}
+.latest-list__title {
+  flex: 1;
+  display: block;
+  font-size: var(--text-sm);
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+}
+.latest-list__title:hover { color: var(--color-link); }
+
+/* Section label above hero */
+.hero-section::before {
+  content: 'নির্বাচিত';
+  display: block;
+  font-family: var(--font-headline);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  padding: var(--space-3) 0;
+  border-left: 4px solid var(--color-accent);
+  padding-left: var(--space-3);
+  margin-bottom: var(--space-5);
+  max-width: var(--grid-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: calc(var(--space-4) + var(--space-3) + 4px);
+}
+
+@media (max-width: 1100px) {
+  .hero-section__grid { grid-template-columns: 1fr 1fr; }
+  .hero-section__latest { display: none; }
+}
+@media (max-width: 640px) {
+  .hero-section__grid { grid-template-columns: 1fr; }
+  .hero-section__secondary { border: none; padding: 0; }
+}
+</style>

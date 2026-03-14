@@ -1,0 +1,90 @@
+---
+// src/components/CategorySection.astro
+// Replicates samakal's category sections like রাজনীতি, রাজধানী, খেলা
+// Two column layout with divider between them, or single full-width section
+import ArticleCard from './ArticleCard.astro';
+
+interface Article {
+  title: string;
+  href: string;
+  image?: string;
+  category?: string;
+  categoryHref?: string;
+  excerpt?: string;
+}
+interface Props {
+  name: string;
+  href: string;
+  articles: Article[];
+  layout?: 'grid' | 'featured-list';
+}
+
+const { name, href, articles, layout = 'grid' } = Astro.props;
+const [main, ...rest] = articles;
+---
+
+<section class="cat-section">
+  <div class="section-header">
+    <h2><a href={href}>{name}</a></h2>
+    <a href={href} class="cat-section__more">আরও »</a>
+  </div>
+
+  {layout === 'featured-list' ? (
+    <div class="cat-section__featured-list">
+      <div class="cat-section__main">
+        {main && <ArticleCard {...main} variant="medium" />}
+      </div>
+      <div class="cat-section__list">
+        {rest.slice(0, 4).map(a => (
+          <div class="cat-section__list-item">
+            <ArticleCard {...a} variant="horizontal" />
+            <div class="divider" style="margin: var(--space-2) 0;" />
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : (
+    <div class="cat-section__grid">
+      {articles.slice(0, 4).map(a => (
+        <ArticleCard {...a} variant="medium" />
+      ))}
+    </div>
+  )}
+</section>
+
+<style>
+.cat-section { margin-bottom: var(--space-8); }
+
+/* More link in section header */
+.cat-section__more {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--color-text-meta);
+  white-space: nowrap;
+  transition: color var(--transition);
+}
+.cat-section__more:hover { color: var(--color-accent); }
+
+/* Grid layout: 4 equal columns */
+.cat-section__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--grid-gap);
+}
+
+/* Featured + list layout: 1 big + vertical list */
+.cat-section__featured-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--grid-gap);
+}
+.cat-section__list-item:last-child .divider { display: none; }
+
+@media (max-width: 900px) {
+  .cat-section__grid { grid-template-columns: repeat(2, 1fr); }
+  .cat-section__featured-list { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .cat-section__grid { grid-template-columns: 1fr 1fr; }
+}
+</style>

@@ -1,0 +1,87 @@
+---
+// src/components/ArticleCard.astro
+// Reusable article card in 3 variants: 'large', 'medium', 'small'
+interface Props {
+  title: string;
+  href: string;
+  image?: string;
+  category?: string;
+  categoryHref?: string;
+  excerpt?: string;
+  publishedAt?: string;
+  variant?: 'large' | 'medium' | 'small' | 'horizontal';
+}
+
+const {
+  title,
+  href,
+  image,
+  category,
+  categoryHref = '#',
+  excerpt,
+  publishedAt,
+  variant = 'medium',
+} = Astro.props;
+---
+
+<article class:list={['article-card', `article-card--${variant}`]}>
+  {image && (
+    <a href={href} class="article-card__img-link" tabindex="-1" aria-hidden="true">
+      <div class="article-card__img-wrap">
+        <img src={image} alt={title} loading="lazy" decoding="async" />
+      </div>
+    </a>
+  )}
+  <div class="article-card__body">
+    {category && (
+      <a href={categoryHref} class="category-badge">{category}</a>
+    )}
+    <h3 class:list={['headline', variant === 'large' ? 'headline-xl' : variant === 'medium' ? 'headline-md' : 'headline-sm']}>
+      <a href={href}>{title}</a>
+    </h3>
+    {excerpt && variant !== 'small' && (
+      <p class="excerpt">{excerpt}</p>
+    )}
+    {publishedAt && (
+      <span class="meta">{publishedAt}</span>
+    )}
+  </div>
+</article>
+
+<style>
+.article-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.article-card__img-wrap {
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--border-radius);
+  background: var(--color-bg-alt);
+}
+.article-card__img-wrap img {
+  width: 100%;
+  transition: transform 0.35s ease;
+}
+.article-card__img-link:hover img { transform: scale(1.04); }
+
+.article-card__body { display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* Large — full-width featured */
+.article-card--large .article-card__img-wrap { aspect-ratio: 16/9; }
+.article-card--large .headline-xl { font-size: var(--text-2xl); }
+
+/* Medium — category grid */
+.article-card--medium .article-card__img-wrap { aspect-ratio: 4/3; }
+
+/* Small — sidebar / list item */
+.article-card--small { flex-direction: row; align-items: flex-start; gap: var(--space-3); }
+.article-card--small .article-card__img-wrap { width: 90px; height: 68px; flex-shrink: 0; aspect-ratio: unset; }
+.article-card--small .article-card__body { flex: 1; }
+
+/* Horizontal — secondary hero stories */
+.article-card--horizontal { flex-direction: row; align-items: flex-start; gap: var(--space-3); }
+.article-card--horizontal .article-card__img-wrap { width: 120px; height: 90px; flex-shrink: 0; aspect-ratio: unset; }
+.article-card--horizontal .article-card__body { flex: 1; }
+</style>

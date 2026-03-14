@@ -1,0 +1,286 @@
+---
+// src/pages/index.astro — Samakal-style Homepage
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import HeroSection from '../components/HeroSection.astro';
+import CategorySection from '../components/CategorySection.astro';
+import BreakingTicker from '../components/BreakingTicker.astro';
+import VideoSection from '../components/VideoSection.astro';
+import ArticleCard from '../components/ArticleCard.astro';
+
+// ── Dummy data (replace with D1 queries in Milestone 3) ──────────────
+
+const breakingNews = [
+  { title: 'হামলা নিয়ে উত্তেজনা ছড়াচ্ছে সারাদেশে, জরুরি বৈঠক ডেকেছে সরকার', href: '/article/1' },
+  { title: 'দেশে ফিরেছেন ক্রিকেট দলের সদস্যরা, বিমানবন্দরে সংবর্ধনা', href: '/article/2' },
+  { title: 'বিরতি না দিয়ে অনুষ্ঠানের ঠিক মাঝখানে এসে পড়লেন তিনি', href: '/article/3' },
+  { title: 'ঢাকায় তাপমাত্রা আরও বাড়ছে, সতর্কতা জারি করেছে আবহাওয়া অধিদপ্তর', href: '/article/4' },
+  { title: 'নতুন বাজেটে শিক্ষা খাতে বরাদ্দ বাড়ানো হবে বলে জানিয়েছে অর্থমন্ত্রণালয়', href: '/article/5' },
+];
+
+const heroFeatured = {
+  title: 'ইসরায়েলে জয়-পরাজয় দেখছে ইউক্রেনিয়ারা, যুদ্ধের ভবিষ্যৎ নিয়ে নতুন আশঙ্কা',
+  href: '/article/hero-1',
+  image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80',
+  category: 'আন্তর্জাতিক',
+  categoryHref: '/category/world',
+  excerpt: 'ইসরায়েলের বর্তমান ও সাবেক গোয়েন্দা সূত্রগুলো বলছে, অভিযানের সাফল্য এখন নির্ভর করছে ব্যাপক সমুদ্র সীমান্তের ভবিষ্যতের ওপর।',
+};
+
+const heroSecondary = [
+  {
+    title: 'বাগেরহাটে সড়ক দুর্ঘটনা / শুকরো আগেই শেষ একসঙ্গে পথচলার স্বপ্ন',
+    href: '/article/2',
+    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80',
+    category: 'সারাদেশ',
+    categoryHref: '/category/nationwide',
+  },
+  {
+    title: 'স্বাধীনতার সংগ্রামে আরও উত্তাল গোটা দেশ, প্রতিবাদের ঢেউ',
+    href: '/article/3',
+    image: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=400&q=80',
+    category: 'বাংলাদেশ',
+    categoryHref: '/category/bangladesh',
+  },
+  {
+    title: 'মির্জা আব্বাসের মিষ্টিকে অস্ত্রোপচার, নেওয়া হতে পারে সিঙ্গাপুর',
+    href: '/article/4',
+    image: 'https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=400&q=80',
+    category: 'রাজনীতি',
+    categoryHref: '/category/politics',
+  },
+];
+
+const heroLatest = [
+  { number: 1, title: 'মধ্যরাতে আগুনে পুড়ল চট্টগ্রামের রেলের সিএসএস দপ্তর', href: '/article/l1' },
+  { number: 2, title: '৩ মাস পর কারামুক্ত হলেন সাংবাদিক আনিস আলমগীর', href: '/article/l2' },
+  { number: 3, title: 'গ্লাভস-হেলমেট ছুড়ে মেরে শাস্তি পেলেন সালমান', href: '/article/l3' },
+  { number: 4, title: 'কক্সবাজারের খুনের আসামি মা-বাবা-ছেলে চট্টগ্রামে গ্রেপ্তার', href: '/article/l4' },
+  { number: 5, title: 'ঈদের দিন রোশান-চমকের প্রেমের গল্প', href: '/article/l5' },
+];
+
+const politicsArticles = [
+  {
+    title: 'নতুন রাজনৈতিক মোর্চা গঠন নিয়ে আলোচনা তুঙ্গে, বৈঠকে নেতারা',
+    href: '/article/p1',
+    image: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=600&q=80',
+    category: 'রাজনীতি',
+    excerpt: 'সংসদ নির্বাচনকে সামনে রেখে বিভিন্ন দলের নেতারা একটি বৃহত্তর জোট গঠনের বিষয়ে আলোচনা করেছেন।',
+  },
+  {
+    title: 'কেন্দ্রীয় কমিটির বৈঠকে গুরুত্বপূর্ণ সিদ্ধান্ত নিয়েছে সরকারি দল',
+    href: '/article/p2',
+    image: 'https://images.unsplash.com/photo-1491336477066-31156b5e4f35?w=600&q=80',
+    category: 'রাজনীতি',
+  },
+  {
+    title: 'সংসদে ভাষণ দিলেন বিরোধীদলীয় নেতা, মূল্যবৃদ্ধি নিয়ে তুললেন আপত্তি',
+    href: '/article/p3',
+    image: 'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=600&q=80',
+    category: 'রাজনীতি',
+  },
+  {
+    title: 'বিএনপির পূর্ণাঙ্গ কমিটি ঘোষণার পরিকল্পনা আগামী সপ্তাহে',
+    href: '/article/p4',
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80',
+    category: 'রাজনীতি',
+  },
+];
+
+const capitalArticles = [
+  {
+    title: 'তৃতীয় টার্মিনাল খুলে যাওয়ায় যাত্রীদের আগ্রহ বেড়েছে শতগুণ',
+    href: '/article/c1',
+    image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=80',
+    category: 'রাজধানী',
+    excerpt: 'নতুন আন্তর্জাতিক টার্মিনাল চালু হওয়ার পর থেকে ঢাকা বিমানবন্দরে যাত্রী সংখ্যা উল্লেখযোগ্যভাবে বৃদ্ধি পেয়েছে।',
+  },
+  {
+    title: 'ঢাকার রাস্তায় আবার জলাবদ্ধতা, নগরবাসীর ভোগান্তি চরমে',
+    href: '/article/c2',
+    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80',
+    category: 'রাজধানী',
+  },
+  {
+    title: 'মেট্রোরেলের নতুন স্টেশন উদ্বোধন হবে আগামী মাসে',
+    href: '/article/c3',
+    image: 'https://images.unsplash.com/photo-1474487548417-781cb71495f3?w=600&q=80',
+    category: 'রাজধানী',
+  },
+  {
+    title: 'রাজধানীর বায়ু দূষণ আবারও বিপজ্জনক মাত্রায়, সতর্কবার্তা',
+    href: '/article/c4',
+    image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=600&q=80',
+    category: 'রাজধানী',
+  },
+];
+
+const sportsArticles = [
+  {
+    title: 'গ্লাভস-হেলমেট ছুড়ে মেরে শাস্তি পেলেন সালমান, ম্যাচ থেকে বহিষ্কার',
+    href: '/article/s1',
+    image: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=600&q=80',
+    category: 'খেলা',
+    excerpt: 'বিপিএল ম্যাচ চলাকালীন সরঞ্জাম ছুড়ে মারার ঘটনায় ক্রিকেটার সালমানকে তাৎক্ষণিক বহিষ্কার করা হয়েছে।',
+  },
+  {
+    title: 'স্পেনের কাছে অবিশ্বাস্য পরাজয়, বিশ্বকাপের স্বপ্ন শেষ বাংলাদেশের',
+    href: '/article/s2',
+    image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=600&q=80',
+    category: 'খেলা',
+  },
+  {
+    title: 'ট্রফি জিতে কাঁদলেন এই ভারত দলের অধিনায়ক রোহিত শর্মা',
+    href: '/article/s3',
+    image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=600&q=80',
+    category: 'খেলা',
+  },
+  {
+    title: 'আগামীকাল মাঠে নামছে বাংলাদেশ, প্রস্তুতি সম্পন্ন বলছেন কোচ',
+    href: '/article/s4',
+    image: 'https://images.unsplash.com/photo-1623874514711-0f321325f318?w=600&q=80',
+    category: 'খেলা',
+  },
+];
+
+const economyArticles = [
+  {
+    title: 'ডলারের বিপরীতে টাকার মান কমল, কেন্দ্রীয় ব্যাংকের নতুন নির্দেশনা',
+    href: '/article/e1',
+    image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&q=80',
+    category: 'অর্থনীতি',
+    excerpt: 'বাংলাদেশ ব্যাংক মুদ্রার নতুন বিনিময় হার ঘোষণা করেছে, যা আমদানিকারকদের জন্য নতুন চ্যালেঞ্জ তৈরি করবে।',
+  },
+  {
+    title: 'পোশাক রপ্তানিতে নতুন রেকর্ড, লক্ষ্যমাত্রা ছাড়িয়েছে বাংলাদেশ',
+    href: '/article/e2',
+    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
+    category: 'অর্থনীতি',
+  },
+  {
+    title: 'রাজস্ব আদায়ে এবার নতুন কৌশল নিচ্ছে জাতীয় রাজস্ব বোর্ড',
+    href: '/article/e3',
+    image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&q=80',
+    category: 'অর্থনীতি',
+  },
+  {
+    title: 'শেয়ারবাজারে আবার ধস, বেশিরভাগ কোম্পানির সূচক লাল',
+    href: '/article/e4',
+    image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&q=80',
+    category: 'অর্থনীতি',
+  },
+];
+
+const videos = [
+  { title: 'সংসদে জাতীয় সমস্যা সমাধানের কেন্দ্রবিন্দু করতে চাই', href: '/video/1', thumbnail: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&q=80' },
+  { title: 'সংসদের প্রথম অধিবেশনে যে বক্তব্য দিলেন নাহিদ ইসলাম', href: '/video/2', thumbnail: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=400&q=80' },
+  { title: 'বাংলাদেশ পরিবারে এসেছি চলে যাওয়ার জন্য জন্মাইনি', href: '/video/3', thumbnail: 'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=400&q=80' },
+  { title: 'টিকটকে হাজার ভিউর পিছনে ছুটে সময় নষ্ট করছে তরুণরা', href: '/video/4', thumbnail: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80' },
+  { title: 'অস্থির বাজারে শাকসবজি বিক্রেতাদের করুণ অবস্থা', href: '/video/5', thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' },
+  { title: 'শিশুর মানসিক বিকাশে পরিবারের ভূমিকা কতটুকু?', href: '/video/6', thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80' },
+  { title: 'বাংলাদেশের প্রধান সমস্যা সমাধানে কী করছে সরকার', href: '/video/7', thumbnail: 'https://images.unsplash.com/photo-1491336477066-31156b5e4f35?w=400&q=80' },
+  { title: 'বাড়ছে মা যাওয়ার ভিড়, সৌদির পথে হাজারো কর্মী', href: '/video/8', thumbnail: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80' },
+];
+
+const bangladeshArticles = [
+  {
+    title: 'ফ্লাড পরিস্থিতি মোকাবেলায় নতুন পরিকল্পনা, সরকারের বিশেষ তহবিল',
+    href: '/article/b1',
+    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80',
+    category: 'বাংলাদেশ',
+    excerpt: 'বন্যা পরিস্থিতি প্রতিরোধে সরকার ২ হাজার কোটি টাকার বিশেষ তহবিল গঠনের ঘোষণা দিয়েছে।',
+  },
+  { title: 'সারাদেশে এইচএস পরীক্ষার ফল প্রকাশ, পাসের হার ৭৮%', href: '/article/b2', image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=600&q=80', category: 'বাংলাদেশ' },
+  { title: 'বন্যার পানি নামছে, ক্ষতিগ্রস্ত এলাকায় ত্রাণ কার্যক্রম শুরু', href: '/article/b3', image: 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=600&q=80', category: 'বাংলাদেশ' },
+  { title: 'পায়রা বন্দরে নতুন জাহাজ যুক্ত হচ্ছে, বাড়বে আমদানি সক্ষমতা', href: '/article/b4', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&q=80', category: 'বাংলাদেশ' },
+];
+---
+
+<BaseLayout title="সমকাল | সর্বশেষ অনলাইন বাংলা সংবাদ">
+  <Header />
+  <BreakingTicker items={breakingNews} />
+
+  <!-- Top banner ad -->
+  <div class="container" style="padding-top: var(--space-3); padding-bottom: var(--space-3);">
+    <div class="ad-slot ad-slot-banner" style="height: 90px; margin: 0 auto;">বিজ্ঞাপন</div>
+  </div>
+
+  <main>
+    <!-- Hero / নির্বাচিত section -->
+    <HeroSection featured={heroFeatured} secondary={heroSecondary} latest={heroLatest} />
+
+    <div class="container">
+      <!-- Inline ad -->
+      <div class="ad-slot ad-slot-banner" style="margin: var(--space-2) 0 var(--space-8);">বিজ্ঞাপন</div>
+
+      <!-- রাজনীতি + রাজধানী side by side -->
+      <div class="dual-section">
+        <CategorySection
+          name="রাজনীতি"
+          href="/category/politics"
+          articles={politicsArticles}
+          layout="featured-list"
+        />
+        <CategorySection
+          name="রাজধানী"
+          href="/category/capital"
+          articles={capitalArticles}
+          layout="featured-list"
+        />
+      </div>
+
+      <!-- Inline ad -->
+      <div class="ad-slot ad-slot-banner" style="margin: var(--space-4) 0;">বিজ্ঞাপন</div>
+    </div>
+
+    <!-- খেলা (Sports) — full width 4-column grid -->
+    <div class="container">
+      <CategorySection
+        name="খেলা"
+        href="/category/sports"
+        articles={sportsArticles}
+        layout="grid"
+      />
+    </div>
+
+    <!-- ভিডিও section — dark bg -->
+    <VideoSection videos={videos} />
+
+    <!-- বাংলাদেশ section -->
+    <div class="container">
+      <CategorySection
+        name="বাংলাদেশ"
+        href="/category/bangladesh"
+        articles={bangladeshArticles}
+        layout="featured-list"
+      />
+
+      <!-- Inline ad -->
+      <div class="ad-slot ad-slot-banner" style="margin: var(--space-2) 0 var(--space-4);">বিজ্ঞাপন</div>
+
+      <!-- অর্থনীতি — 4-column grid -->
+      <CategorySection
+        name="অর্থনীতি"
+        href="/category/economy"
+        articles={economyArticles}
+        layout="grid"
+      />
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+/* Side-by-side dual sections (রাজনীতি + রাজধানী) */
+.dual-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(var(--grid-gap) * 2);
+  margin-bottom: var(--space-6);
+}
+@media (max-width: 768px) {
+  .dual-section { grid-template-columns: 1fr; }
+}
+</style>

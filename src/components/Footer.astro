@@ -1,0 +1,162 @@
+---
+// src/components/Footer.astro
+// Multi-column footer replicating samakal.com
+const footerLinks = {
+  'বিভাগসমূহ': [
+    { label: 'সর্বশেষ', href: '/category/latest' },
+    { label: 'বাংলাদেশ', href: '/category/bangladesh' },
+    { label: 'রাজনীতি', href: '/category/politics' },
+    { label: 'অর্থনীতি', href: '/category/economy' },
+    { label: 'বিশ্ব', href: '/category/world' },
+    { label: 'খেলা', href: '/category/sports' },
+    { label: 'বিনোদন', href: '/category/entertainment' },
+    { label: 'মতামত', href: '/category/opinion' },
+  ],
+  'প্রতিষ্ঠান': [
+    { label: 'আমাদের সম্পর্কে', href: '/about' },
+    { label: 'বিজ্ঞাপন', href: '/advertise' },
+    { label: 'যোগাযোগ', href: '/contact' },
+    { label: 'ই-পেপার', href: '/epaper' },
+    { label: 'গোপনীয়তা নীতি', href: '/privacy' },
+    { label: 'সম্পাদকীয় নীতি', href: '/editorial-policy' },
+  ],
+};
+---
+
+<footer class="site-footer">
+  <div class="container footer__inner">
+    <!-- Logo + about -->
+    <div class="footer__brand">
+      <a href="/" class="footer__logo">সমকাল</a>
+      <p class="footer__about">বাংলাদেশের শীর্ষস্থানীয় বাংলা অনলাইন সংবাদপত্র। সর্বশেষ সংবাদ, রাজনীতি, অর্থনীতি, খেলাধুলা ও বিনোদনের জন্য সমকাল পড়ুন।</p>
+      <div class="footer__social">
+        <a href="https://facebook.com" aria-label="Facebook" target="_blank" rel="noopener">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+        </a>
+        <a href="https://x.com" aria-label="X" target="_blank" rel="noopener">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://youtube.com" aria-label="YouTube" target="_blank" rel="noopener">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.54C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="white" points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Links columns -->
+    {Object.entries(footerLinks).map(([group, links]) => (
+      <div class="footer__col">
+        <h3 class="footer__col-title">{group}</h3>
+        <ul class="footer__links">
+          {links.map(l => <li><a href={l.href}>{l.label}</a></li>)}
+        </ul>
+      </div>
+    ))}
+
+    <!-- Contact -->
+    <div class="footer__col">
+      <h3 class="footer__col-title">যোগাযোগ</h3>
+      <address class="footer__address">
+        <p>সম্পাদক: [সম্পাদকের নাম]</p>
+        <p>প্রকাশক: [প্রকাশকের নাম]</p>
+        <p>ঠিকানা: ঢাকা, বাংলাদেশ</p>
+        <p><a href="mailto:info@samakal.com">info@samakal.com</a></p>
+      </address>
+    </div>
+  </div>
+
+  <div class="footer__bottom">
+    <div class="container footer__bottom-inner">
+      <p>© {new Date().getFullYear()} সমকাল। সর্বস্বত্ব সংরক্ষিত।</p>
+      <a href="/" class="footer__bottom-logo">সমকাল</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+.site-footer {
+  background: var(--color-bg-alt);
+  border-top: 3px solid var(--color-accent);
+  margin-top: var(--space-10);
+}
+.footer__inner {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: var(--space-8);
+  padding: var(--space-10) var(--space-4);
+}
+.footer__logo {
+  font-family: var(--font-headline);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--color-text);
+  display: block;
+  margin-bottom: var(--space-4);
+}
+.footer__about {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+  margin-bottom: var(--space-5);
+}
+.footer__social { display: flex; gap: var(--space-3); }
+.footer__social a {
+  color: var(--color-text-secondary);
+  display: flex;
+  transition: color var(--transition);
+}
+.footer__social a:hover { color: var(--color-accent); }
+
+.footer__col-title {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--color-accent);
+  display: inline-block;
+}
+.footer__links { display: flex; flex-direction: column; gap: var(--space-2); }
+.footer__links a {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  transition: color var(--transition);
+}
+.footer__links a:hover { color: var(--color-accent); }
+
+.footer__address {
+  font-style: normal;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  line-height: var(--leading-normal);
+}
+.footer__address a { color: var(--color-link); }
+
+.footer__bottom {
+  background: var(--color-bg-dark-2);
+  padding: var(--space-4) 0;
+}
+.footer__bottom-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.footer__bottom p { font-size: var(--text-xs); color: rgba(255,255,255,0.6); }
+.footer__bottom-logo {
+  font-family: var(--font-headline);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.8);
+}
+
+@media (max-width: 900px) {
+  .footer__inner { grid-template-columns: 1fr 1fr; }
+  .footer__brand { grid-column: 1 / -1; }
+}
+@media (max-width: 480px) {
+  .footer__inner { grid-template-columns: 1fr; padding: var(--space-6) var(--space-4); }
+}
+</style>

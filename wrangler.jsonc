@@ -1,0 +1,36 @@
+{
+	"compatibility_date": "2026-03-14",
+	"compatibility_flags": ["nodejs_compat"],
+	"name": "samakal-news",
+	"main": "@astrojs/cloudflare/entrypoints/server",
+	"assets": {
+		"directory": "./dist",
+		"binding": "ASSETS"
+	},
+	"observability": {
+		"enabled": true
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "samakal-news-db",
+			"database_id": "REPLACE_WITH_D1_ID"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "MEDIA",
+			"bucket_name": "samakal-media"
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "SESSION",
+			"id": "REPLACE_WITH_KV_SESSION_ID"
+		},
+		{
+			"binding": "CACHE",
+			"id": "REPLACE_WITH_KV_CACHE_ID"
+		}
+	]
+}

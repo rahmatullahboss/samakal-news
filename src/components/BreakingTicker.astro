@@ -1,0 +1,77 @@
+---
+// src/components/BreakingTicker.astro
+// Horizontal scrolling breaking news ticker
+
+interface Props {
+  items: { title: string; href: string }[];
+}
+const { items } = Astro.props;
+---
+
+<div class="breaking-ticker">
+  <div class="container breaking-ticker__inner">
+    <span class="badge-breaking">ব্রেকিং</span>
+    <div class="ticker-track-wrap">
+      <div class="ticker-track" id="ticker-track">
+        {items.map(item => (
+          <a href={item.href} class="ticker-item">{item.title}</a>
+        ))}
+        <!-- Duplicate for seamless loop -->
+        {items.map(item => (
+          <a href={item.href} class="ticker-item" aria-hidden="true">{item.title}</a>
+        ))}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.breaking-ticker {
+  background: var(--color-bg-alt);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  overflow: hidden;
+}
+.breaking-ticker__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: 38px;
+}
+.ticker-track-wrap { flex: 1; overflow: hidden; position: relative; }
+.ticker-track-wrap::before,
+.ticker-track-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 40px;
+  z-index: 1;
+  pointer-events: none;
+}
+.ticker-track-wrap::before { left: 0; background: linear-gradient(to right, var(--color-bg-alt), transparent); }
+.ticker-track-wrap::after  { right: 0; background: linear-gradient(to left, var(--color-bg-alt), transparent); }
+
+.ticker-track {
+  display: flex;
+  gap: 0;
+  width: max-content;
+  animation: ticker-scroll 35s linear infinite;
+}
+.ticker-track:hover { animation-play-state: paused; }
+
+.ticker-item {
+  padding: 0 var(--space-6);
+  font-size: var(--text-sm);
+  color: var(--color-text-body);
+  white-space: nowrap;
+  border-right: 1px solid var(--color-border);
+  transition: color var(--transition);
+  line-height: 38px;
+}
+.ticker-item:hover { color: var(--color-link); }
+
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+</style>
