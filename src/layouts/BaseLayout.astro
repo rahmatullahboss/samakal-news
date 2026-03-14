@@ -1,31 +1,85 @@
 ---
 // src/layouts/BaseLayout.astro
+// Astro 6 optimizations: ViewTransitions, prefetch, font preload, structured data
+import { ViewTransitions } from 'astro:transitions';
+
 interface Props {
   title?: string;
   description?: string;
   ogImage?: string;
+  ogType?: 'website' | 'article';
+  publishedAt?: string;
+  author?: string;
+  canonicalUrl?: string;
 }
+
 const {
   title = 'সমকাল | সর্বশেষ অনলাইন বাংলা সংবাদ',
   description = 'সমকাল - বাংলাদেশের শীর্ষস্থানীয় বাংলা অনলাইন সংবাদপত্র',
   ogImage = '/og-default.jpg',
+  ogType = 'website',
+  publishedAt,
+  author,
+  canonicalUrl = Astro.url.href,
 } = Astro.props;
+
+const siteName = 'সমকাল';
+const baseUrl = 'https://samakal-news.pages.dev';
 ---
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="bn" dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- SEO -->
+    <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content={siteName} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={ogImage} />
-    <meta property="og:type" content="website" />
+    <meta property="og:image" content={ogImage.startsWith('http') ? ogImage : `${baseUrl}${ogImage}`} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={canonicalUrl} />
+    {ogType === 'article' && publishedAt && <meta property="article:published_time" content={publishedAt} />}
+    {ogType === 'article' && author && <meta property="article:author" content={author} />}
+
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage.startsWith('http') ? ogImage : `${baseUrl}${ogImage}`} />
+
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>{title}</title>
+
+    <!-- Google Fonts — preconnect first, then stylesheet (Astro 6 best practice) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" />
+    </noscript>
+
+    <!-- Astro 6 ViewTransitions — smooth page navigation, no full-page reload -->
+    <ViewTransitions />
+
+    <!-- Astro 6 Prefetch — enables data-astro-prefetch on nav links -->
+    <script>
+      // Enable prefetch on hover for all internal links in nav
+      document.querySelectorAll('nav a[href^="/"]').forEach(el => {
+        el.setAttribute('data-astro-prefetch', 'hover');
+      });
+    </script>
   </head>
   <body>
     <slot />

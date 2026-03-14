@@ -1,5 +1,7 @@
 ---
 // src/pages/[slug].astro — Dynamic Article Detail Page
+// Astro 6: use cloudflare:workers env module (not Astro.locals.runtime)
+import { env } from 'cloudflare:workers';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
@@ -8,7 +10,10 @@ import ArticleCard from '../components/ArticleCard.astro';
 export const prerender = false;
 
 const { slug } = Astro.params;
-const { DB } = (Astro.locals as any).runtime.env;
+const DB = (env as any).DB;
+
+// Astro 6: Cache-Control for CDN edge caching — 5min fresh, 1h stale-while-revalidate
+Astro.response.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
 
 // Fetch article from D1
 const article = await DB.prepare(`

@@ -1,11 +1,11 @@
 // src/pages/api/articles/index.ts
-// GET  /api/articles?category=&status=&limit=&page=
-// POST /api/articles  (requires Bearer token auth)
+// Astro 6: use cloudflare:workers env module
 
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
-export const GET: APIRoute = async ({ request, locals }) => {
-  const { DB } = (locals as any).runtime.env;
+export const GET: APIRoute = async ({ request }) => {
+  const DB = (env as any).DB;
   const url = new URL(request.url);
   const category = url.searchParams.get('category');
   const status   = url.searchParams.get('status') ?? 'published';
@@ -37,14 +37,18 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const countRow = await DB.prepare(countQ).bind(...countB).first();
     const total = (countRow as any)?.total ?? 0;
 
-    return Response.json({ data: results, meta: { total, page, limit, pages: Math.ceil(total / limit) } });
+    return Response.json(
+      { data: results, meta: { total, page, limit, pages: Math.ceil(total / limit) } },
+      { headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' } }
+    );
   } catch (err: any) {
     return Response.json({ error: err.message }, { status: 500 });
   }
 };
 
-export const POST: APIRoute = async ({ request, locals }) => {
-  const { DB, SESSION } = (locals as any).runtime.env;
+export const POST: APIRoute = async ({ request }) => {
+  const SESSION = (env as any).SESSION;
+  const DB = (env as any).DB;
   const token = request.headers.get('Authorization')?.replace('Bearer ', '');
   if (!token) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   const session = await SESSION.get(`session:${token}`);

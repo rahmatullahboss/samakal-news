@@ -1,8 +1,8 @@
 // src/pages/api/auth/login.ts
-// POST /api/auth/login  — login, create KV session
-// DELETE /api/auth/login — logout
+// Astro 6: use cloudflare:workers env module
 
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 function generateToken(): string {
   const arr = new Uint8Array(32);
@@ -15,8 +15,9 @@ async function sha256Hex(str: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export const POST: APIRoute = async ({ request, locals }) => {
-  const { DB, SESSION } = (locals as any).runtime.env;
+export const POST: APIRoute = async ({ request }) => {
+  const DB = (env as any).DB;
+  const SESSION = (env as any).SESSION;
   try {
     const { email, password } = await request.json() as any;
     if (!email || !password) return Response.json({ error: 'email and password required' }, { status: 400 });
@@ -30,7 +31,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const token = generateToken();
     const sessionData = JSON.stringify({ id: author.id, name: author.name, email: author.email, role: author.role });
-    await SESSION.put(`session:${token}`, sessionData, { expirationTtl: 86400 }); // 24h
+    await SESSION.put(`session:${token}`, sessionData, { expirationTtl: 86400 });
 
     return Response.json({ token, user: { id: author.id, name: author.name, email: author.email, role: author.role } });
   } catch (err: any) {
@@ -38,8 +39,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 };
 
-export const DELETE: APIRoute = async ({ request, locals }) => {
-  const { SESSION } = (locals as any).runtime.env;
+export const DELETE: APIRoute = async ({ request }) => {
+  const SESSION = (env as any).SESSION;
   const token = request.headers.get('Authorization')?.replace('Bearer ', '');
   if (token) await SESSION.delete(`session:${token}`);
   return Response.json({ success: true });
