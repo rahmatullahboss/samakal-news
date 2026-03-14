@@ -1,0 +1,332 @@
+---
+// src/pages/[slug].astro — Dynamic Article Detail Page
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import ArticleCard from '../components/ArticleCard.astro';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+
+// In Milestone 3 this will query D1:
+// const { DB } = Astro.locals.runtime.env;
+// const article = await DB.prepare('SELECT * FROM articles WHERE slug = ? AND status = "published"').bind(slug).first();
+// const related = await DB.prepare('SELECT * FROM articles WHERE category_id = ? AND slug != ? AND status = "published" LIMIT 4').bind(article.category_id, slug).all();
+
+// Dummy data until D1 is wired
+const article = {
+  title: slug === 'israel-ukraine-war-2026'
+    ? 'ইসরায়েলে জয়-পরাজয় দেখছে ইউক্রেনিয়ারা, যুদ্ধের ভবিষ্যৎ নিয়ে নতুন আশঙ্কা'
+    : 'নিবন্ধটি পাওয়া যায়নি',
+  excerpt: 'ইসরায়েলের বর্তমান ও সাবেক গোয়েন্দা সূত্রগুলো বলছে, অভিযানের সাফল্য এখন নির্ভর করছে ব্যাপক সমুদ্র সীমান্তের ভবিষ্যতের ওপর।',
+  content: `
+    <p>ইসরায়েলের বর্তমান ও সাবেক গোয়েন্দা সূত্রগুলো বলছে, অভিযানের সাফল্য এখন নির্ভর করছে ব্যাপক সমুদ্র সীমান্তের ভবিষ্যতের ওপর। এই যুদ্ধের পরিণতি নিয়ে আন্তর্জাতিক মহলে উদ্বেগ বাড়ছে।</p>
+    <p>আন্তর্জাতিক বিশ্লেষকরা মনে করছেন, এই সংঘাতের দীর্ঘমেয়াদী প্রভাব পড়বে পুরো মধ্যপ্রাচ্যে। ইউক্রেনিয়রা ঘনিষ্ঠভাবে পর্যবেক্ষণ করছে কিভাবে পরাশক্তিগুলো এই সংঘাতে হস্তক্ষেপ করছে।</p>
+    <p>বিশেষজ্ঞরা বলছেন, উভয় সংঘাতের মধ্যে কিছু গুরুত্বপূর্ণ মিল রয়েছে — বিশেষত অস্ত্র সরবরাহ এবং আন্তর্জাতিক কূটনীতির দিক থেকে। ইউক্রেনিয়রা সরাসরি ইসরায়েলের সামরিক কৌশল থেকে শিক্ষা নিচ্ছে।</p>
+    <p>অন্যদিকে, মার্কিন যুক্তরাষ্ট্র উভয় সংঘাতে ভিন্ন ভূমিকা পালন করছে, যা আন্তর্জাতিক রাজনীতিতে নতুন প্রশ্ন তুলেছে।</p>
+    <p>জাতিসংঘ সংঘাত নিরসনে মধ্যস্থতার চেষ্টা অব্যাহত রেখেছে, তবে তাৎক্ষণিক সমাধানের সম্ভাবনা ক্ষীণ বলে মনে করছেন কূটনীতিকরা।</p>
+  `,
+  category: 'বিশ্ব',
+  categoryHref: '/category/world',
+  categorySlug: 'world',
+  author: 'সম্পাদনা পর্ষদ',
+  authorHref: '/author/editorial-board',
+  publishedAt: '১৪ মার্চ ২০২৬',
+  image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=80',
+  tags: ['ইসরায়েল', 'ইউক্রেন', 'যুদ্ধ', 'আন্তর্জাতিক'],
+};
+
+const related = [
+  { title: 'গাজায় যুদ্ধবিরতি নিয়ে নতুন আলোচনা শুরু', href: '/article/2', image: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=400&q=80', category: 'বিশ্ব' },
+  { title: 'ন্যাটো শীর্ষ সম্মেলনে ইউক্রেন ইস্যু আলোচনার শীর্ষে', href: '/article/3', image: 'https://images.unsplash.com/photo-1491336477066-31156b5e4f35?w=400&q=80', category: 'বিশ্ব' },
+  { title: 'মধ্যপ্রাচ্যে অস্থিরতা: তেলের বাজারে প্রভাব পড়ছে', href: '/article/4', image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80', category: 'অর্থনীতি' },
+  { title: 'জাতিসংঘে বাংলাদেশের ভোট: শান্তির পক্ষে অবস্থান', href: '/article/5', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80', category: 'বাংলাদেশ' },
+];
+---
+
+<BaseLayout
+  title={`${article.title} | সমকাল`}
+  description={article.excerpt}
+  ogImage={article.image}
+>
+  <Header />
+
+  <main class="article-page">
+    <div class="container">
+      <div class="article-layout">
+
+        <!-- Main article content -->
+        <article class="article-main">
+          <!-- Breadcrumb -->
+          <nav class="breadcrumb" aria-label="ব্রেডক্রাম্ব">
+            <a href="/">হোম</a>
+            <span>›</span>
+            <a href={article.categoryHref}>{article.category}</a>
+          </nav>
+
+          <!-- Category -->
+          <a href={article.categoryHref} class="category-badge">{article.category}</a>
+
+          <!-- Title -->
+          <h1 class="article-title">{article.title}</h1>
+
+          <!-- Excerpt -->
+          <p class="article-lead">{article.excerpt}</p>
+
+          <!-- Meta -->
+          <div class="article-meta">
+            <div class="article-meta__author">
+              <span class="article-meta__label">লেখক:</span>
+              <a href={article.authorHref} class="article-meta__author-name">{article.author}</a>
+            </div>
+            <div class="article-meta__divider" aria-hidden="true">|</div>
+            <time class="article-meta__date">{article.publishedAt}</time>
+            <div class="article-meta__share">
+              <button class="share-btn" aria-label="ফেসবুকে শেয়ার">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+              </button>
+              <button class="share-btn" aria-label="X-তে শেয়ার">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Featured Image -->
+          {article.image && (
+            <figure class="article-figure">
+              <img src={article.image} alt={article.title} />
+            </figure>
+          )}
+
+          <!-- Article body -->
+          <div class="article-body" set:html={article.content} />
+
+          <!-- Tags -->
+          {article.tags.length > 0 && (
+            <div class="article-tags">
+              <span class="article-tags__label">ট্যাগ:</span>
+              {article.tags.map(tag => (
+                <a href={`/tag/${tag}`} class="article-tag">{tag}</a>
+              ))}
+            </div>
+          )}
+
+          <!-- Share footer -->
+          <div class="article-share-footer">
+            <span>এই সংবাদটি শেয়ার করুন:</span>
+            <div class="share-buttons">
+              <button class="share-btn share-btn--facebook">ফেসবুক</button>
+              <button class="share-btn share-btn--x">X</button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Sidebar -->
+        <aside class="article-sidebar">
+          <div class="ad-slot ad-slot-large" style="margin-bottom: var(--space-6);">বিজ্ঞাপন</div>
+
+          <div class="sidebar-section">
+            <div class="section-header" style="margin-bottom: var(--space-4);">
+              <h2>সংশ্লিষ্ট খবর</h2>
+            </div>
+            <div class="sidebar-articles">
+              {related.slice(0, 4).map(r => (
+                <div class="sidebar-article-item">
+                  <ArticleCard title={r.title} href={r.href} image={r.image} category={r.category} variant="small" />
+                  <div class="divider" style="margin: var(--space-3) 0;" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Related articles grid -->
+      <section class="related-section">
+        <div class="section-header">
+          <h2>আরও পড়ুন</h2>
+        </div>
+        <div class="related-grid">
+          {related.map(r => (
+            <ArticleCard title={r.title} href={r.href} image={r.image} category={r.category} variant="medium" />
+          ))}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+.article-page { padding: var(--space-6) 0 var(--space-10); }
+
+.article-layout {
+  display: grid;
+  grid-template-columns: 1fr var(--sidebar-w);
+  gap: var(--grid-gap);
+  align-items: start;
+  margin-bottom: var(--space-10);
+}
+
+/* Breadcrumb */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-meta);
+  margin-bottom: var(--space-4);
+}
+.breadcrumb a { color: var(--color-link); }
+.breadcrumb a:hover { text-decoration: underline; }
+
+/* Title */
+.article-title {
+  font-family: var(--font-headline);
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: var(--leading-tight);
+  margin: var(--space-3) 0 var(--space-4);
+}
+
+/* Lead */
+.article-lead {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+  border-left: 4px solid var(--color-accent);
+  padding-left: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+/* Meta */
+.article-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-5);
+  font-size: var(--text-sm);
+  flex-wrap: wrap;
+}
+.article-meta__label { color: var(--color-text-meta); }
+.article-meta__author-name { color: var(--color-link); font-weight: 600; }
+.article-meta__author-name:hover { text-decoration: underline; }
+.article-meta__divider { color: var(--color-border-dark); }
+.article-meta__date { color: var(--color-text-meta); }
+.article-meta__share { margin-left: auto; display: flex; gap: var(--space-2); }
+
+.share-btn {
+  background: var(--color-accent);
+  color: var(--color-text);
+  border: none;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  transition: background var(--transition);
+  font-family: var(--font-body);
+}
+.share-btn:hover { background: var(--color-accent-dark); }
+
+/* Featured image */
+.article-figure {
+  margin: 0 0 var(--space-6);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+.article-figure img { width: 100%; max-height: 480px; object-fit: cover; }
+
+/* Article body */
+.article-body {
+  font-size: var(--text-md);
+  line-height: var(--leading-loose);
+  color: var(--color-text-body);
+}
+.article-body p { margin-bottom: var(--space-5); }
+.article-body h2, .article-body h3 {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  margin: var(--space-6) 0 var(--space-3);
+  color: var(--color-text);
+}
+.article-body blockquote {
+  border-left: 4px solid var(--color-accent);
+  padding-left: var(--space-5);
+  margin: var(--space-5) 0;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* Tags */
+.article-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-8);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+.article-tags__label { font-size: var(--text-sm); color: var(--color-text-meta); }
+.article-tag {
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  padding: var(--space-1) var(--space-3);
+  border-radius: 20px;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  transition: all var(--transition);
+}
+.article-tag:hover { background: var(--color-accent); border-color: var(--color-accent); color: #000; }
+
+/* Share footer */
+.article-share-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  background: var(--color-bg-alt);
+  border-radius: var(--border-radius);
+  font-size: var(--text-sm);
+}
+.share-buttons { display: flex; gap: var(--space-2); }
+.share-btn--facebook { background: #1877F2; color: white; }
+.share-btn--facebook:hover { background: #0e6adf; }
+.share-btn--x { background: #000; color: white; }
+.share-btn--x:hover { background: #333; }
+
+/* Sidebar */
+.article-sidebar { position: sticky; top: 60px; }
+.sidebar-section {}
+.sidebar-article-item:last-child .divider { display: none; }
+
+/* Related grid */
+.related-section { padding-top: var(--space-8); border-top: 2px solid var(--color-border); }
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--grid-gap);
+}
+
+@media (max-width: 960px) {
+  .article-layout { grid-template-columns: 1fr; }
+  .article-sidebar { display: none; }
+  .article-title { font-size: var(--text-2xl); }
+  .related-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .article-title { font-size: var(--text-xl); }
+  .related-grid { grid-template-columns: 1fr 1fr; }
+  .article-meta { gap: var(--space-2); }
+}
+</style>

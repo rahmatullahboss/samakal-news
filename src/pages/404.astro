@@ -1,0 +1,44 @@
+---
+// src/pages/404.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+<BaseLayout title="পাতা পাওয়া যায়নি | সমকাল">
+  <Header />
+  <main class="not-found">
+    <div class="container not-found__inner">
+      <div class="not-found__code">৪০৪</div>
+      <h1 class="not-found__title">পাতাটি পাওয়া যায়নি</h1>
+      <p class="not-found__msg">দুঃখিত, আপনি যে পাতাটি খুঁজছেন তা পাওয়া যায়নি বা সরানো হয়েছে।</p>
+      <a href="/" class="not-found__btn">হোমপেজে ফিরে যান</a>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>
+<style>
+.not-found { padding: var(--space-12) 0; text-align: center; }
+.not-found__inner { display: flex; flex-direction: column; align-items: center; gap: var(--space-5); }
+.not-found__code {
+  font-family: var(--font-headline);
+  font-size: 8rem;
+  font-weight: 800;
+  color: var(--color-accent);
+  line-height: 1;
+}
+.not-found__title {
+  font-family: var(--font-headline);
+  font-size: var(--text-2xl);
+  color: var(--color-text);
+}
+.not-found__msg { color: var(--color-text-secondary); font-size: var(--text-md); }
+.not-found__btn {
+  background: var(--color-accent);
+  color: #000;
+  padding: var(--space-3) var(--space-8);
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  transition: background var(--transition);
+}
+.not-found__btn:hover { background: var(--color-accent-dark); }
+</style>

@@ -1,0 +1,268 @@
+---
+// src/pages/category/[slug].astro — Category Listing Page
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const page = Number(Astro.url.searchParams.get('page') ?? 1);
+const PAGE_SIZE = 12;
+
+// Category name map (will come from D1 in Milestone 3)
+const categoryNames: Record<string, string> = {
+  latest: 'সর্বশেষ',
+  bangladesh: 'বাংলাদেশ',
+  politics: 'রাজনীতি',
+  economy: 'অর্থনীতি',
+  world: 'বিশ্ব',
+  sports: 'খেলা',
+  entertainment: 'বিনোদন',
+  nationwide: 'সারাদেশ',
+  crime: 'অপরাধ',
+  opinion: 'মতামত',
+  capital: 'রাজধানী',
+  lifestyle: 'লাইফস্টাইল',
+  style: 'শৈলী',
+  video: 'ভিডিও',
+};
+
+const categoryName = categoryNames[slug ?? ''] ?? slug;
+if (!categoryName) return Astro.redirect('/');
+
+// Dummy articles (replace with D1 query)
+const images = [
+  'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&q=80',
+  'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=600&q=80',
+  'https://images.unsplash.com/photo-1491336477066-31156b5e4f35?w=600&q=80',
+  'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=600&q=80',
+  'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=600&q=80',
+  'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&q=80',
+  'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
+  'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80',
+  'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=600&q=80',
+  'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=600&q=80',
+  'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&q=80',
+  'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=80',
+];
+
+const dummyArticles = Array.from({ length: PAGE_SIZE }, (_, i) => ({
+  title: `${categoryName} বিভাগের গুরুত্বপূর্ণ সংবাদ ${(page - 1) * PAGE_SIZE + i + 1}: আরও বিস্তারিত পড়তে ক্লিক করুন`,
+  href: `/article-${(page - 1) * PAGE_SIZE + i + 1}`,
+  image: images[i % images.length],
+  category: categoryName,
+  categoryHref: `/category/${slug}`,
+  excerpt: 'এই সংবাদটি সম্পর্কে বিস্তারিত জানতে পড়ুন। সর্বশেষ তথ্য ও বিশ্লেষণ পাওয়া যাচ্ছে এখানে।',
+}));
+
+const totalPages = 5; // will be calculated from D1 count
+const hasNext = page < totalPages;
+const hasPrev = page > 1;
+---
+
+<BaseLayout
+  title={`${categoryName} | সমকাল`}
+  description={`সমকাল ${categoryName} বিভাগের সর্বশেষ সংবাদ পড়ুন।`}
+>
+  <Header />
+
+  <main class="category-page">
+    <div class="container">
+      <!-- Category header -->
+      <div class="category-header">
+        <h1 class="category-title">
+          <span class="category-title__bar"></span>
+          {categoryName}
+        </h1>
+        <p class="category-desc">{categoryName} বিভাগের সর্বশেষ সংবাদ, বিশ্লেষণ ও প্রতিবেদন</p>
+      </div>
+
+      <!-- Ad slot -->
+      <div class="ad-slot ad-slot-banner" style="margin-bottom: var(--space-6);">বিজ্ঞাপন</div>
+
+      <div class="category-layout">
+        <!-- Articles grid -->
+        <div class="category-main">
+          <!-- First article: large featured -->
+          <div class="category-featured">
+            <ArticleCard
+              title={dummyArticles[0].title}
+              href={dummyArticles[0].href}
+              image={dummyArticles[0].image}
+              category={dummyArticles[0].category}
+              categoryHref={dummyArticles[0].categoryHref}
+              excerpt={dummyArticles[0].excerpt}
+              variant="large"
+            />
+          </div>
+
+          <div class="divider" style="margin: var(--space-6) 0;" />
+
+          <!-- Rest in 3-column grid -->
+          <div class="category-grid">
+            {dummyArticles.slice(1).map(a => (
+              <ArticleCard
+                title={a.title}
+                href={a.href}
+                image={a.image}
+                category={a.category}
+                categoryHref={a.categoryHref}
+                variant="medium"
+              />
+            ))}
+          </div>
+
+          <!-- Pagination -->
+          <nav class="pagination" aria-label="পেজিনেশন">
+            {hasPrev && (
+              <a href={`/category/${slug}?page=${page - 1}`} class="pagination__btn">
+                « আগের পাতা
+              </a>
+            )}
+            <div class="pagination__pages">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <a
+                  href={`/category/${slug}?page=${p}`}
+                  class:list={['pagination__page', { 'pagination__page--active': p === page }]}
+                >
+                  {p}
+                </a>
+              ))}
+            </div>
+            {hasNext && (
+              <a href={`/category/${slug}?page=${page + 1}`} class="pagination__btn">
+                পরের পাতা »
+              </a>
+            )}
+          </nav>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="category-sidebar">
+          <div class="ad-slot ad-slot-medium" style="margin-bottom: var(--space-6);">বিজ্ঞাপন</div>
+
+          <!-- Most read -->
+          <div class="sidebar-widget">
+            <div class="section-header" style="margin-bottom: var(--space-4);">
+              <h2>সর্বাধিক পঠিত</h2>
+            </div>
+            <ol class="most-read-list">
+              {dummyArticles.slice(0, 5).map((a, i) => (
+                <li class="most-read-item">
+                  <span class="most-read-num">{i + 1}</span>
+                  <a href={a.href} class="most-read-title">{a.title}</a>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div class="ad-slot ad-slot-medium" style="margin-top: var(--space-6);">বিজ্ঞাপন</div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+.category-page { padding: var(--space-6) 0 var(--space-10); }
+
+.category-header { margin-bottom: var(--space-6); }
+.category-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-headline);
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+.category-title__bar {
+  display: inline-block;
+  width: 6px;
+  height: 36px;
+  background: var(--color-accent);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.category-desc { color: var(--color-text-meta); font-size: var(--text-sm); }
+
+/* Layout */
+.category-layout {
+  display: grid;
+  grid-template-columns: 1fr var(--sidebar-w);
+  gap: var(--grid-gap);
+  align-items: start;
+}
+
+/* Featured article */
+.category-featured { max-width: 700px; }
+
+/* Articles grid */
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--grid-gap);
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-10);
+  flex-wrap: wrap;
+}
+.pagination__pages { display: flex; gap: var(--space-2); }
+.pagination__btn, .pagination__page {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  transition: all var(--transition);
+}
+.pagination__btn:hover, .pagination__page:hover { background: var(--color-accent); border-color: var(--color-accent); }
+.pagination__page--active { background: var(--color-accent); border-color: var(--color-accent); font-weight: 700; }
+
+/* Most read widget */
+.most-read-list { display: flex; flex-direction: column; }
+.most-read-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.most-read-item:last-child { border-bottom: none; }
+.most-read-num {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  color: var(--color-accent);
+  line-height: 1;
+  min-width: 24px;
+  flex-shrink: 0;
+}
+.most-read-title {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  line-height: var(--leading-tight);
+  font-family: var(--font-body);
+}
+.most-read-title:hover { color: var(--color-link); }
+
+@media (max-width: 960px) {
+  .category-layout { grid-template-columns: 1fr; }
+  .category-sidebar { display: none; }
+  .category-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .category-grid { grid-template-columns: 1fr 1fr; }
+  .category-title { font-size: var(--text-2xl); }
+}
+</style>
