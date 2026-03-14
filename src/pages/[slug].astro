@@ -8,41 +8,61 @@ import ArticleCard from '../components/ArticleCard.astro';
 export const prerender = false;
 
 const { slug } = Astro.params;
+const { DB } = (Astro.locals as any).runtime.env;
 
-// In Milestone 3 this will query D1:
-// const { DB } = Astro.locals.runtime.env;
-// const article = await DB.prepare('SELECT * FROM articles WHERE slug = ? AND status = "published"').bind(slug).first();
-// const related = await DB.prepare('SELECT * FROM articles WHERE category_id = ? AND slug != ? AND status = "published" LIMIT 4').bind(article.category_id, slug).all();
+// Fetch article from D1
+const article = await DB.prepare(`
+  SELECT
+    a.id, a.title, a.slug, a.excerpt, a.content, a.featured_image,
+    a.is_breaking, a.published_at,
+    c.name AS category,  c.slug AS category_slug,
+    au.name AS author,   au.slug AS author_slug
+  FROM articles a
+  LEFT JOIN categories c  ON a.category_id = c.id
+  LEFT JOIN authors au    ON a.author_id   = au.id
+  WHERE a.slug = ? AND a.status = 'published'
+`).bind(slug).first<any>();
 
-// Dummy data until D1 is wired
-const article = {
-  title: slug === 'israel-ukraine-war-2026'
-    ? 'ইসরায়েলে জয়-পরাজয় দেখছে ইউক্রেনিয়ারা, যুদ্ধের ভবিষ্যৎ নিয়ে নতুন আশঙ্কা'
-    : 'নিবন্ধটি পাওয়া যায়নি',
-  excerpt: 'ইসরায়েলের বর্তমান ও সাবেক গোয়েন্দা সূত্রগুলো বলছে, অভিযানের সাফল্য এখন নির্ভর করছে ব্যাপক সমুদ্র সীমান্তের ভবিষ্যতের ওপর।',
-  content: `
-    <p>ইসরায়েলের বর্তমান ও সাবেক গোয়েন্দা সূত্রগুলো বলছে, অভিযানের সাফল্য এখন নির্ভর করছে ব্যাপক সমুদ্র সীমান্তের ভবিষ্যতের ওপর। এই যুদ্ধের পরিণতি নিয়ে আন্তর্জাতিক মহলে উদ্বেগ বাড়ছে।</p>
-    <p>আন্তর্জাতিক বিশ্লেষকরা মনে করছেন, এই সংঘাতের দীর্ঘমেয়াদী প্রভাব পড়বে পুরো মধ্যপ্রাচ্যে। ইউক্রেনিয়রা ঘনিষ্ঠভাবে পর্যবেক্ষণ করছে কিভাবে পরাশক্তিগুলো এই সংঘাতে হস্তক্ষেপ করছে।</p>
-    <p>বিশেষজ্ঞরা বলছেন, উভয় সংঘাতের মধ্যে কিছু গুরুত্বপূর্ণ মিল রয়েছে — বিশেষত অস্ত্র সরবরাহ এবং আন্তর্জাতিক কূটনীতির দিক থেকে। ইউক্রেনিয়রা সরাসরি ইসরায়েলের সামরিক কৌশল থেকে শিক্ষা নিচ্ছে।</p>
-    <p>অন্যদিকে, মার্কিন যুক্তরাষ্ট্র উভয় সংঘাতে ভিন্ন ভূমিকা পালন করছে, যা আন্তর্জাতিক রাজনীতিতে নতুন প্রশ্ন তুলেছে।</p>
-    <p>জাতিসংঘ সংঘাত নিরসনে মধ্যস্থতার চেষ্টা অব্যাহত রেখেছে, তবে তাৎক্ষণিক সমাধানের সম্ভাবনা ক্ষীণ বলে মনে করছেন কূটনীতিকরা।</p>
-  `,
-  category: 'বিশ্ব',
-  categoryHref: '/category/world',
-  categorySlug: 'world',
-  author: 'সম্পাদনা পর্ষদ',
-  authorHref: '/author/editorial-board',
-  publishedAt: '১৪ মার্চ ২০২৬',
-  image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=80',
-  tags: ['ইসরায়েল', 'ইউক্রেন', 'যুদ্ধ', 'আন্তর্জাতিক'],
-};
+if (!article) return Astro.redirect('/404');
 
-const related = [
-  { title: 'গাজায় যুদ্ধবিরতি নিয়ে নতুন আলোচনা শুরু', href: '/article/2', image: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=400&q=80', category: 'বিশ্ব' },
-  { title: 'ন্যাটো শীর্ষ সম্মেলনে ইউক্রেন ইস্যু আলোচনার শীর্ষে', href: '/article/3', image: 'https://images.unsplash.com/photo-1491336477066-31156b5e4f35?w=400&q=80', category: 'বিশ্ব' },
-  { title: 'মধ্যপ্রাচ্যে অস্থিরতা: তেলের বাজারে প্রভাব পড়ছে', href: '/article/4', image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80', category: 'অর্থনীতি' },
-  { title: 'জাতিসংঘে বাংলাদেশের ভোট: শান্তির পক্ষে অবস্থান', href: '/article/5', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80', category: 'বাংলাদেশ' },
-];
+// Increment view count (fire-and-forget)
+DB.prepare('UPDATE articles SET view_count = view_count + 1 WHERE slug = ?').bind(slug).run().catch(() => {});
+
+// Fetch related articles from same category
+const { results: relatedRows } = await DB.prepare(`
+  SELECT a.title, a.slug, a.featured_image, c.name AS category, c.slug AS cat_slug
+  FROM articles a
+  LEFT JOIN categories c ON a.category_id = c.id
+  WHERE a.status = 'published' AND a.slug != ? AND a.category_id = (
+    SELECT category_id FROM articles WHERE slug = ?
+  )
+  ORDER BY a.published_at DESC LIMIT 4
+`).bind(slug, slug).all<any>();
+
+// Fetch article tags
+const { results: tagRows } = await DB.prepare(`
+  SELECT t.name, t.slug FROM tags t
+  JOIN article_tags at ON at.tag_id = t.id
+  JOIN articles a ON at.article_id = a.id
+  WHERE a.slug = ?
+`).bind(slug).all<any>();
+
+const related = (relatedRows ?? []).map((r: any) => ({
+  title: r.title,
+  href: `/${r.slug}`,
+  image: r.featured_image,
+  category: r.category,
+  categoryHref: `/category/${r.cat_slug}`,
+}));
+
+const tags = (tagRows ?? []).map((t: any) => ({ name: t.name, slug: t.slug }));
+
+// Format date in Bangla
+const banglaDigits = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+const toBangla = (n: number) => String(n).split('').map(d => banglaDigits[+d] ?? d).join('');
+const banglaMonths = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+const dateObj = article.published_at ? new Date(article.published_at) : new Date();
+const publishedAt = `${toBangla(dateObj.getDate())} ${banglaMonths[dateObj.getMonth()]} ${toBangla(dateObj.getFullYear())}`;
 ---
 
 <BaseLayout
