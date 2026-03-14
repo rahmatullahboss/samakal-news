@@ -1,7 +1,7 @@
 ---
 // src/layouts/BaseLayout.astro
-// Astro 6 optimizations: ViewTransitions, prefetch, font preload, structured data
-import { ViewTransitions } from 'astro:transitions';
+// Astro 6 optimizations: ClientRouter, prefetch, font preload, structured data
+import { ClientRouter } from 'astro:transitions';
 
 interface Props {
   title?: string;
@@ -70,8 +70,8 @@ const baseUrl = 'https://samakal-news.pages.dev';
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" />
     </noscript>
 
-    <!-- Astro 6 ViewTransitions — smooth page navigation, no full-page reload -->
-    <ViewTransitions />
+    <!-- Astro 6 ClientRouter — smooth page navigation, no full-page reload -->
+    <ClientRouter />
 
     <!-- Astro 6 Prefetch — enables data-astro-prefetch on nav links -->
     <script>
