@@ -1,0 +1,219 @@
+---
+// src/pages/admin/articles/new.astro — Create new article
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+export const prerender = false;
+
+const DB = (env as any).DB;
+const user = (Astro.locals as any).user;
+const { results: categories } = await DB.prepare('SELECT id, name, slug FROM categories ORDER BY sort_order').all<any>();
+---
+<AdminLayout title="নতুন সংবাদ | সমকাল Admin" activeNav="new-article">
+  <div class="admin-page">
+    <div class="admin-page-header">
+      <h1 class="admin-page-title">নতুন সংবাদ লিখুন</h1>
+      <a href="/admin/articles" class="btn-ghost">← ফিরে যান</a>
+    </div>
+
+    <form id="article-form" class="article-editor">
+      <!-- Left: Editor -->
+      <div class="editor-main">
+        <div class="editor-group">
+          <label class="editor-label">শিরোনাম *</label>
+          <input id="title" name="title" type="text" class="editor-input editor-input--xl" placeholder="সংবাদের শিরোনাম লিখুন…" required />
+        </div>
+        <div class="editor-group">
+          <label class="editor-label">স্লাগ (URL) *</label>
+          <input id="slug" name="slug" type="text" class="editor-input" placeholder="auto-generated-from-title" required />
+        </div>
+        <div class="editor-group">
+          <label class="editor-label">সংক্ষিপ্ত বিবরণ</label>
+          <textarea id="excerpt" name="excerpt" class="editor-textarea editor-textarea--sm" placeholder="সংবাদের সারসংক্ষেপ…" rows="3"></textarea>
+        </div>
+        <div class="editor-group">
+          <label class="editor-label">মূল বিষয়বস্তু *</label>
+          <div id="editor-toolbar" class="editor-toolbar">
+            <button type="button" class="tb-btn" data-cmd="bold" title="Bold">B</button>
+            <button type="button" class="tb-btn tb-btn--italic" data-cmd="italic" title="Italic">I</button>
+            <button type="button" class="tb-btn" data-cmd="formatBlock" data-val="h2" title="H2">H2</button>
+            <button type="button" class="tb-btn" data-cmd="formatBlock" data-val="h3" title="H3">H3</button>
+            <button type="button" class="tb-btn" data-cmd="insertUnorderedList" title="List">☰</button>
+            <button type="button" class="tb-btn" data-cmd="insertOrderedList" title="Numbered">1.</button>
+            <button type="button" class="tb-btn" id="img-btn" title="Image">🖼</button>
+          </div>
+          <div id="content-editor" class="content-editor" contenteditable="true"></div>
+          <input type="hidden" id="content" name="content" />
+        </div>
+      </div>
+
+      <!-- Right: Sidebar options -->
+      <aside class="editor-sidebar">
+        <div class="sidebar-card">
+          <h3 class="sidebar-card__title">প্রকাশনা</h3>
+          <div class="editor-group">
+            <label class="editor-label">স্ট্যাটাস</label>
+            <select name="status" class="editor-select">
+              <option value="draft">ড্রাফট</option>
+              <option value="published">প্রকাশিত</option>
+            </select>
+          </div>
+          <div class="editor-group">
+            <label class="editor-label">প্রকাশের তারিখ</label>
+            <input type="datetime-local" name="published_at" class="editor-input" />
+          </div>
+          <div class="editor-checks">
+            <label class="editor-check"><input type="checkbox" name="is_featured" /> ফিচার্ড সংবাদ</label>
+            <label class="editor-check"><input type="checkbox" name="is_breaking" /> ব্রেকিং নিউজ</label>
+          </div>
+          <button type="submit" id="save-btn" class="btn-save">সংবাদ প্রকাশ করুন</button>
+        </div>
+
+        <div class="sidebar-card">
+          <h3 class="sidebar-card__title">বিভাগ</h3>
+          <select name="category_id" class="editor-select">
+            <option value="">বিভাগ নির্বাচন করুন</option>
+            {categories.map((c: any) => (
+              <option value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div class="sidebar-card">
+          <h3 class="sidebar-card__title">ফিচার্ড ছবি</h3>
+          <input type="url" id="featured_image" name="featured_image" class="editor-input" placeholder="https://..." />
+          <div id="img-preview" class="img-preview" style="display:none">
+            <img id="img-preview-img" src="" alt="preview" style="width:100%;border-radius:6px;margin-top:8px;" />
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:#9CA3AF;">অথবা ফাইল আপলোড:</div>
+          <input type="file" id="img-upload" accept="image/*" class="editor-file" />
+        </div>
+      </aside>
+    </form>
+  </div>
+</AdminLayout>
+
+<script>
+// Auto-generate slug from title
+const titleEl = document.getElementById('title') as HTMLInputElement;
+const slugEl = document.getElementById('slug') as HTMLInputElement;
+titleEl?.addEventListener('input', () => {
+  if (slugEl && !slugEl.dataset.custom) {
+    slugEl.value = titleEl.value
+      .toLowerCase()
+      .replace(/[\u0980-\u09FF]+/g, c => c) // keep Bangla as-is
+      .replace(/[^a-z0-9\u0980-\u09FF]+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+});
+slugEl?.addEventListener('input', () => { slugEl.dataset.custom = '1'; });
+
+// Toolbar
+document.querySelectorAll('.tb-btn[data-cmd]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const cmd = (btn as HTMLElement).dataset.cmd!;
+    const val = (btn as HTMLElement).dataset.val;
+    document.execCommand(cmd, false, val);
+    document.getElementById('content-editor')?.focus();
+  });
+});
+
+// Image preview
+const imgInput = document.getElementById('featured_image') as HTMLInputElement;
+const imgPreview = document.getElementById('img-preview')!;
+const imgPreviewEl = document.getElementById('img-preview-img') as HTMLImageElement;
+imgInput?.addEventListener('input', () => {
+  if (imgInput.value) { imgPreviewEl.src = imgInput.value; imgPreview.style.display = 'block'; }
+  else { imgPreview.style.display = 'none'; }
+});
+
+// Image upload to R2
+const fileInput = document.getElementById('img-upload') as HTMLInputElement;
+fileInput?.addEventListener('change', async () => {
+  const file = fileInput.files?.[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  const token = document.cookie.match(/admin_token=([^;]+)/)?.[1];
+  const resp = await fetch('/api/media/upload', { method: 'POST', headers: token ? { 'Authorization': `Bearer ${token}` } : {}, body: fd });
+  if (resp.ok) {
+    const { url } = await resp.json() as any;
+    imgInput.value = url;
+    imgPreviewEl.src = url;
+    imgPreview.style.display = 'block';
+  }
+});
+
+// Form submit
+const form = document.getElementById('article-form') as HTMLFormElement;
+form?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const contentInput = document.getElementById('content') as HTMLInputElement;
+  contentInput.value = document.getElementById('content-editor')!.innerHTML;
+  const fd = new FormData(form);
+  const token = document.cookie.match(/admin_token=([^;]+)/)?.[1];
+  const body = {
+    title: fd.get('title'), slug: fd.get('slug'), excerpt: fd.get('excerpt'),
+    content: fd.get('content'), featured_image: fd.get('featured_image'),
+    category_id: fd.get('category_id') ? Number(fd.get('category_id')) : null,
+    status: fd.get('status'),
+    is_featured: fd.get('is_featured') ? 1 : 0,
+    is_breaking: fd.get('is_breaking') ? 1 : 0,
+    published_at: fd.get('published_at') || new Date().toISOString(),
+  };
+  const btn = document.getElementById('save-btn') as HTMLButtonElement;
+  btn.disabled = true; btn.textContent = 'সংরক্ষণ করা হচ্ছে…';
+  const resp = await fetch('/api/articles', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
+  if (resp.ok) {
+    const { id } = await resp.json() as any;
+    window.location.href = `/admin/articles/${id}/edit?saved=1`;
+  } else {
+    const err = await resp.json() as any;
+    alert('ত্রুটি: ' + (err.error ?? 'Failed'));
+    btn.disabled = false; btn.textContent = 'সংবাদ প্রকাশ করুন';
+  }
+});
+</script>
+
+<style>
+.admin-page { padding: 32px; }
+.admin-page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.admin-page-title { font-size: 22px; font-weight: 700; }
+.btn-ghost { color: #6B7280; text-decoration: none; font-size: 14px; padding: 8px 14px; border: 1px solid #E5E7EB; border-radius: 8px; }
+.article-editor { display: grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start; }
+.editor-main { display: flex; flex-direction: column; gap: 18px; }
+.editor-group { display: flex; flex-direction: column; gap: 6px; }
+.editor-label { font-size: 13px; font-weight: 500; color: #374151; }
+.editor-input { padding: 9px 13px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; font-family: 'Noto Sans Bengali', sans-serif; outline: none; transition: border-color 0.15s; }
+.editor-input:focus { border-color: #F9B200; }
+.editor-input--xl { font-size: 18px; font-weight: 600; padding: 12px 14px; }
+.editor-textarea { padding: 9px 13px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; font-family: 'Noto Sans Bengali', sans-serif; resize: vertical; outline: none; }
+.editor-textarea:focus { border-color: #F9B200; }
+.editor-textarea--sm { min-height: 72px; }
+.editor-select { padding: 9px 13px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; width: 100%; background: #fff; }
+.editor-file { margin-top: 6px; font-size: 13px; }
+.editor-toolbar { display: flex; gap: 4px; padding: 6px 8px; background: #F9FAFB; border: 1px solid #E5E7EB; border-bottom: none; border-radius: 8px 8px 0 0; }
+.tb-btn { padding: 4px 10px; border: 1px solid #E5E7EB; border-radius: 4px; background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; }
+.tb-btn:hover { background: #F9B200; border-color: #F9B200; }
+.tb-btn--italic { font-style: italic; }
+.content-editor {
+  min-height: 400px;
+  padding: 16px;
+  border: 1px solid #E5E7EB;
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+  font-family: 'Noto Sans Bengali', serif;
+  font-size: 16px;
+  line-height: 1.8;
+  outline: none;
+}
+.content-editor:focus { border-color: #F9B200; }
+.editor-checks { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.editor-check { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.sidebar-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 18px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; }
+.sidebar-card__title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6B7280; margin-bottom: 4px; }
+.btn-save { background: #F9B200; color: #000; border: none; padding: 12px; width: 100%; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.btn-save:hover { opacity: 0.9; }
+.btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+.img-preview { margin-top: 4px; }
+</style>

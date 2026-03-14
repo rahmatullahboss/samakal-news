@@ -1,0 +1,134 @@
+---
+// src/pages/admin/login.astro — Admin Login Page
+export const prerender = false;
+
+let error = '';
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const email = form.get('email') as string;
+  const password = form.get('password') as string;
+  try {
+    const resp = await fetch(new URL('/api/auth/login', Astro.url), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (resp.ok) {
+      const { token } = await resp.json() as any;
+      Astro.cookies.set('admin_token', token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+        maxAge: 86400,
+        path: '/',
+      });
+      return Astro.redirect('/admin');
+    } else {
+      const data = await resp.json() as any;
+      error = data.error ?? 'লগইন ব্যর্থ হয়েছে';
+    }
+  } catch (e) {
+    error = 'সার্ভার ত্রুটি';
+  }
+}
+---
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>লগইন | সমকাল Admin</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" />
+</head>
+<body class="login-body">
+  <div class="login-card">
+    <div class="login-header">
+      <span class="login-logo">সমকাল</span>
+      <h1 class="login-title">Admin লগইন</h1>
+    </div>
+
+    {error && <div class="login-error" role="alert">{error}</div>}
+
+    <form method="POST" class="login-form">
+      <div class="form-group">
+        <label for="email" class="form-label">ইমেইল</label>
+        <input id="email" name="email" type="email" required class="form-input" placeholder="editor@samakal.net" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label for="password" class="form-label">পাসওয়ার্ড</label>
+        <input id="password" name="password" type="password" required class="form-input" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button type="submit" id="login-btn" class="login-btn">লগইন করুন</button>
+    </form>
+    <p class="login-back"><a href="/">← সাইটে ফিরুন</a></p>
+  </div>
+</body>
+</html>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body.login-body {
+  font-family: 'Inter', 'Noto Sans Bengali', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f1117;
+  padding: 16px;
+}
+.login-card {
+  background: #1a1c23;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%;
+  max-width: 420px;
+}
+.login-header { text-align: center; margin-bottom: 32px; }
+.login-logo { font-family: 'Noto Sans Bengali', serif; font-size: 32px; font-weight: 800; color: #F9B200; }
+.login-title { font-size: 16px; color: rgba(255,255,255,0.5); margin-top: 6px; font-weight: 400; }
+.login-error {
+  background: rgba(229,57,53,0.12);
+  border: 1px solid rgba(229,57,53,0.3);
+  color: #ff6b6b;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+.login-form { display: flex; flex-direction: column; gap: 20px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 500; }
+.form-input {
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  outline: none;
+}
+.form-input:focus { border-color: #F9B200; }
+.form-input::placeholder { color: rgba(255,255,255,0.25); }
+.login-btn {
+  background: #F9B200;
+  color: #000;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s;
+  margin-top: 4px;
+}
+.login-btn:hover { opacity: 0.9; }
+.login-back { text-align: center; margin-top: 20px; font-size: 13px; }
+.login-back a { color: rgba(255,255,255,0.4); }
+.login-back a:hover { color: #F9B200; }
+</style>

@@ -1,0 +1,134 @@
+---
+// src/pages/admin/media/index.astro — R2 Media Gallery
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+export const prerender = false;
+---
+<AdminLayout title="মিডিয়া | সমকাল Admin" activeNav="media">
+  <div class="admin-page">
+    <div class="admin-page-header">
+      <h1 class="admin-page-title">মিডিয়া গ্যালারি</h1>
+    </div>
+
+    <!-- Upload zone -->
+    <div class="admin-card" style="margin-bottom:20px;">
+      <div class="admin-card__header"><h3>ছবি আপলোড করুন</h3></div>
+      <div class="upload-area" id="upload-area">
+        <div class="upload-icon">📁</div>
+        <p class="upload-text">এখানে ফাইল টেনে আনুন অথবা</p>
+        <label class="upload-btn" for="file-input">ফাইল বেছে নিন</label>
+        <input id="file-input" type="file" accept="image/*" multiple style="display:none;" />
+        <p class="upload-hint">PNG, JPG, WebP — সর্বোচ্চ 5MB</p>
+      </div>
+      <div id="upload-progress" style="padding:0 20px 16px;display:none;">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <p id="progress-text" class="progress-text">আপলোড হচ্ছে…</p>
+      </div>
+    </div>
+
+    <!-- Uploaded files -->
+    <div id="uploaded-files" class="media-grid"></div>
+    <div id="no-media" class="no-media" style="display:none;">
+      <p>কোনো ছবি আপলোড করা হয়নি।</p>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+const token = document.cookie.match(/admin_token=([^;]+)/)?.[1];
+const uploadArea = document.getElementById('upload-area')!;
+const fileInput = document.getElementById('file-input') as HTMLInputElement;
+const progressDiv = document.getElementById('upload-progress')!;
+const progressFill = document.getElementById('progress-fill')!;
+const progressText = document.getElementById('progress-text')!;
+const uploadedFiles = document.getElementById('uploaded-files')!;
+
+// Load from localStorage (since we can't list R2 without a custom endpoint)
+const stored: string[] = JSON.parse(localStorage.getItem('media_urls') ?? '[]');
+renderMedia(stored);
+
+async function uploadFile(file: File) {
+  progressDiv.style.display = 'block';
+  progressFill.style.width = '0%';
+  progressText.textContent = `আপলোড হচ্ছে: ${file.name}`;
+
+  const fd = new FormData();
+  fd.append('file', file);
+  const resp = await fetch('/api/media/upload', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: fd,
+  });
+  progressFill.style.width = '100%';
+  if (resp.ok) {
+    const { url } = await resp.json() as any;
+    const urls: string[] = JSON.parse(localStorage.getItem('media_urls') ?? '[]');
+    urls.unshift(url);
+    localStorage.setItem('media_urls', JSON.stringify(urls.slice(0, 200)));
+    renderMedia(urls);
+    progressText.textContent = '✅ আপলোড সফল হয়েছে';
+    setTimeout(() => { progressDiv.style.display = 'none'; }, 2000);
+  } else {
+    progressText.textContent = '❌ আপলোড ব্যর্থ হয়েছে';
+  }
+}
+
+fileInput.addEventListener('change', async () => {
+  for (const file of Array.from(fileInput.files ?? [])) await uploadFile(file);
+});
+
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', async e => {
+  e.preventDefault(); uploadArea.classList.remove('dragover');
+  for (const file of Array.from(e.dataTransfer?.files ?? [])) await uploadFile(file);
+});
+
+function renderMedia(urls: string[]) {
+  if (!urls.length) { document.getElementById('no-media')!.style.display = 'flex'; uploadedFiles.innerHTML = ''; return; }
+  document.getElementById('no-media')!.style.display = 'none';
+  uploadedFiles.innerHTML = urls.map(url => `
+    <div class="media-item">
+      <img src="${url}" alt="media" loading="lazy" />
+      <div class="media-item__overlay">
+        <button class="copy-btn" data-url="${url}" title="URL কপি করুন">📋 কপি</button>
+      </div>
+    </div>
+  `).join('');
+  uploadedFiles.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText((btn as HTMLElement).dataset.url!);
+      btn.textContent = '✅ কপি হয়েছে';
+      setTimeout(() => { btn.textContent = '📋 কপি'; }, 2000);
+    });
+  });
+}
+</script>
+
+<style>
+.admin-page { padding: 32px; }
+.admin-page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.admin-page-title { font-size: 24px; font-weight: 700; }
+.admin-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+.admin-card__header { padding: 16px 20px; border-bottom: 1px solid #E5E7EB; font-size: 14px; font-weight: 600; }
+.upload-area {
+  margin: 20px; padding: 48px 20px;
+  border: 2px dashed #D1D5DB; border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.upload-area.dragover { border-color: #F9B200; background: #FFFBEB; }
+.upload-icon { font-size: 36px; }
+.upload-text { font-size: 14px; color: #6B7280; }
+.upload-btn { background: #F9B200; color: #000; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.upload-hint { font-size: 12px; color: #9CA3AF; }
+.progress-bar { height: 6px; background: #E5E7EB; border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: #F9B200; border-radius: 3px; transition: width 0.3s; }
+.progress-text { font-size: 13px; color: #6B7280; margin-top: 6px; }
+.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.media-item { position: relative; border-radius: 8px; overflow: hidden; background: #F3F4F6; aspect-ratio: 4/3; }
+.media-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-item__overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); opacity: 0; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; }
+.media-item:hover .media-item__overlay { opacity: 1; }
+.copy-btn { background: #fff; color: #000; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
+.no-media { display: flex; align-items: center; justify-content: center; padding: 60px; color: #9CA3AF; font-size: 15px; }
+</style>

@@ -1,0 +1,132 @@
+---
+// src/pages/admin/articles/index.astro — Article List with filters
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+export const prerender = false;
+
+const DB = (env as any).DB;
+const url = new URL(Astro.request.url);
+const status = url.searchParams.get('status') ?? '';
+const category = url.searchParams.get('category') ?? '';
+const page = Math.max(Number(url.searchParams.get('page') ?? 1), 1);
+const PAGE_SIZE = 20;
+
+let query = `SELECT a.id, a.title, a.slug, a.status, a.is_featured, a.is_breaking, a.view_count, a.published_at, c.name AS cat FROM articles a LEFT JOIN categories c ON a.category_id = c.id WHERE 1=1`;
+const binds: (string|number)[] = [];
+if (status) { query += ` AND a.status = ?`; binds.push(status); }
+if (category) { query += ` AND c.slug = ?`; binds.push(category); }
+query += ` ORDER BY a.created_at DESC LIMIT ? OFFSET ?`;
+binds.push(PAGE_SIZE, (page - 1) * PAGE_SIZE);
+
+const { results: articles } = await DB.prepare(query).bind(...binds).all<any>();
+const { results: categories } = await DB.prepare('SELECT name, slug FROM categories ORDER BY sort_order').all<any>();
+const countRow = await DB.prepare('SELECT COUNT(*) as n FROM articles').first<{n:number}>();
+const total = countRow?.n ?? 0;
+const totalPages = Math.ceil(total / PAGE_SIZE);
+---
+<AdminLayout title="সংবাদ তালিকা | সমকাল Admin" activeNav="articles">
+  <div class="admin-page">
+    <div class="admin-page-header">
+      <h1 class="admin-page-title">সংবাদ তালিকা</h1>
+      <a href="/admin/articles/new" class="btn-primary">+ নতুন সংবাদ</a>
+    </div>
+
+    <!-- Filters -->
+    <form method="GET" class="filter-bar">
+      <select name="status" class="filter-select" onchange="this.form.submit()">
+        <option value="" selected={!status}>সব স্ট্যাটাস</option>
+        <option value="published" selected={status==='published'}>প্রকাশিত</option>
+        <option value="draft" selected={status==='draft'}>ড্রাফট</option>
+        <option value="archived" selected={status==='archived'}>আর্কাইভ</option>
+      </select>
+      <select name="category" class="filter-select" onchange="this.form.submit()">
+        <option value="" selected={!category}>সব বিভাগ</option>
+        {categories.map((c: any) => (
+          <option value={c.slug} selected={category===c.slug}>{c.name}</option>
+        ))}
+      </select>
+    </form>
+
+    <!-- Table -->
+    <div class="admin-card">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>শিরোনাম</th>
+            <th>বিভাগ</th>
+            <th>স্ট্যাটাস</th>
+            <th>ফিচার্ড</th>
+            <th>ব্রেকিং</th>
+            <th>ভিউ</th>
+            <th>অ্যাকশন</th>
+          </tr>
+        </thead>
+        <tbody>
+          {articles.length === 0 && (
+            <tr><td colspan="7" class="td-empty">কোনো সংবাদ পাওয়া যায়নি</td></tr>
+          )}
+          {articles.map((a: any) => (
+            <tr>
+              <td class="td-title"><a href={`/admin/articles/${a.id}/edit`}>{a.title}</a></td>
+              <td>{a.cat ?? '—'}</td>
+              <td><span class:list={['status-badge', `status-badge--${a.status}`]}>{a.status === 'published' ? 'প্রকাশিত' : a.status === 'draft' ? 'ড্রাফট' : a.status}</span></td>
+              <td>{a.is_featured ? '✅' : '—'}</td>
+              <td>{a.is_breaking ? '🔴' : '—'}</td>
+              <td>{a.view_count}</td>
+              <td>
+                <div class="td-actions">
+                  <a href={`/admin/articles/${a.id}/edit`} class="action-btn">সম্পাদনা</a>
+                  <a href={`/${a.slug}`} target="_blank" class="action-btn action-btn--ghost">দেখুন</a>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {totalPages > 1 && (
+      <div class="pagination">
+        {Array.from({length: totalPages}, (_,i) => i+1).map(p => (
+          <a href={`?page=${p}${status?`&status=${status}`:''}${category?`&category=${category}`:''}`}
+             class:list={['page-btn', {active: p === page}]}>{p}</a>
+        ))}
+      </div>
+    )}
+  </div>
+</AdminLayout>
+
+<style>
+.admin-page { padding: 32px; }
+.admin-page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.admin-page-title { font-size: 24px; font-weight: 700; }
+.btn-primary { background: #F9B200; color: #000; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; }
+.btn-primary:hover { opacity: 0.9; }
+
+.filter-bar { display: flex; gap: 12px; margin-bottom: 20px; }
+.filter-select { padding: 8px 14px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; background: #fff; cursor: pointer; }
+
+.admin-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.admin-table th { padding: 10px 16px; text-align: left; background: #F9FAFB; color: #6B7280; font-size: 12px; font-weight: 500; border-bottom: 1px solid #E5E7EB; }
+.admin-table td { padding: 12px 16px; border-bottom: 1px solid #F3F4F6; vertical-align: middle; }
+.admin-table tr:last-child td { border-bottom: none; }
+.td-title { max-width: 340px; }
+.td-title a { color: #111; font-weight: 500; text-decoration: none; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.td-title a:hover { color: #F9B200; }
+.td-empty { text-align: center; color: #9CA3AF; padding: 40px !important; }
+
+.status-badge { display: inline-flex; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+.status-badge--published { background: #dcfce7; color: #16a34a; }
+.status-badge--draft { background: #FEF9C3; color: #854d0e; }
+.status-badge--archived { background: #F3F4F6; color: #6B7280; }
+
+.td-actions { display: flex; gap: 6px; }
+.action-btn { font-size: 12px; padding: 4px 10px; border-radius: 6px; background: #F9B200; color: #000; font-weight: 500; text-decoration: none; }
+.action-btn--ghost { background: #F3F4F6; color: #374151; }
+
+.pagination { display: flex; gap: 6px; margin-top: 20px; }
+.page-btn { padding: 6px 12px; border: 1px solid #E5E7EB; border-radius: 6px; font-size: 13px; text-decoration: none; color: #374151; }
+.page-btn.active { background: #F9B200; border-color: #F9B200; color: #000; font-weight: 700; }
+</style>

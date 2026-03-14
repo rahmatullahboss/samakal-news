@@ -1,0 +1,102 @@
+---
+// src/pages/admin/categories/index.astro — Category Management
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+export const prerender = false;
+
+const DB = (env as any).DB;
+
+// Handle POST (add category)
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const name = form.get('name') as string;
+  const slug = form.get('slug') as string;
+  const sort_order = Number(form.get('sort_order') ?? 0);
+  if (name && slug) {
+    await DB.prepare('INSERT OR IGNORE INTO categories (name, slug, sort_order) VALUES (?, ?, ?)').bind(name, slug, sort_order).run();
+  }
+  return Astro.redirect('/admin/categories');
+}
+
+const { results: categories } = await DB.prepare('SELECT id, name, slug, sort_order FROM categories ORDER BY sort_order').all<any>();
+---
+<AdminLayout title="বিভাগ | সমকাল Admin" activeNav="categories">
+  <div class="admin-page">
+    <div class="admin-page-header">
+      <h1 class="admin-page-title">বিভাগ সমূহ</h1>
+    </div>
+
+    <div class="categories-layout">
+      <!-- Add form -->
+      <div class="admin-card">
+        <div class="admin-card__header"><h3>নতুন বিভাগ যোগ করুন</h3></div>
+        <form method="POST" class="add-form">
+          <div class="form-row">
+            <div class="editor-group">
+              <label class="editor-label">নাম *</label>
+              <input name="name" class="editor-input" placeholder="বিভাগের নাম (বাংলায়)" required />
+            </div>
+            <div class="editor-group">
+              <label class="editor-label">স্লাগ *</label>
+              <input name="slug" class="editor-input" placeholder="category-slug" required />
+            </div>
+            <div class="editor-group">
+              <label class="editor-label">ক্রম</label>
+              <input name="sort_order" type="number" class="editor-input" value="0" style="width:80px;" />
+            </div>
+            <button type="submit" class="btn-primary" style="align-self:flex-end;">যোগ করুন</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Category list -->
+      <div class="admin-card">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>নাম</th>
+              <th>স্লাগ</th>
+              <th>ক্রম</th>
+              <th>অ্যাকশন</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categories.map((c: any) => (
+              <tr>
+                <td><strong>{c.name}</strong></td>
+                <td><code class="slug-code">{c.slug}</code></td>
+                <td>{c.sort_order}</td>
+                <td>
+                  <a href={`/category/${c.slug}`} target="_blank" class="action-btn action-btn--ghost">দেখুন ↗</a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<style>
+.admin-page { padding: 32px; }
+.admin-page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.admin-page-title { font-size: 24px; font-weight: 700; }
+.categories-layout { display: flex; flex-direction: column; gap: 20px; }
+.admin-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+.admin-card__header { padding: 16px 20px; border-bottom: 1px solid #E5E7EB; font-size: 14px; font-weight: 600; }
+.add-form { padding: 20px; }
+.form-row { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.editor-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px; }
+.editor-label { font-size: 13px; font-weight: 500; color: #374151; }
+.editor-input { padding: 9px 13px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; }
+.editor-input:focus { border-color: #F9B200; }
+.btn-primary { background: #F9B200; color: #000; border: none; padding: 9px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.admin-table th { padding: 10px 16px; text-align: left; background: #F9FAFB; color: #6B7280; font-size: 12px; font-weight: 500; border-bottom: 1px solid #E5E7EB; }
+.admin-table td { padding: 12px 16px; border-bottom: 1px solid #F3F4F6; }
+.admin-table tr:last-child td { border-bottom: none; }
+.slug-code { background: #F3F4F6; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+.action-btn { font-size: 12px; padding: 4px 10px; border-radius: 6px; text-decoration: none; }
+.action-btn--ghost { background: #F3F4F6; color: #374151; }
+</style>

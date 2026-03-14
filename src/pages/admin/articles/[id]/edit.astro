@@ -1,0 +1,175 @@
+---
+// src/pages/admin/articles/[id]/edit.astro — Edit existing article
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+export const prerender = false;
+
+const DB = (env as any).DB;
+const { id } = Astro.params;
+const saved = new URL(Astro.request.url).searchParams.has('saved');
+
+const article = await DB.prepare(`
+  SELECT a.*, c.name AS cat_name FROM articles a LEFT JOIN categories c ON a.category_id = c.id WHERE a.id = ?
+`).bind(id).first<any>();
+
+if (!article) return Astro.redirect('/admin/articles');
+
+const { results: categories } = await DB.prepare('SELECT id, name FROM categories ORDER BY sort_order').all<any>();
+---
+<AdminLayout title={`সম্পাদনা | ${article.title}`} activeNav="articles">
+  <div class="admin-page">
+    <div class="admin-page-header">
+      <h1 class="admin-page-title">সংবাদ সম্পাদনা</h1>
+      <div style="display:flex;gap:10px;">
+        <a href={`/${article.slug}`} target="_blank" class="btn-ghost">দেখুন ↗</a>
+        <a href="/admin/articles" class="btn-ghost">← ফিরে যান</a>
+      </div>
+    </div>
+
+    {saved && <div class="save-notice">✅ সংবাদ সফলভাবে সংরক্ষিত হয়েছে।</div>}
+
+    <form id="edit-form" class="article-editor">
+      <input type="hidden" name="article_id" value={article.id} />
+      <div class="editor-main">
+        <div class="editor-group">
+          <label class="editor-label">শিরোনাম *</label>
+          <input id="title" name="title" class="editor-input editor-input--xl" value={article.title} required />
+        </div>
+        <div class="editor-group">
+          <label class="editor-label">স্লাগ</label>
+          <input id="slug" name="slug" class="editor-input" value={article.slug} required />
+        </div>
+        <div class="editor-group">
+          <label class="editor-label">সংক্ষিপ্ত বিবরণ</label>
+          <textarea name="excerpt" class="editor-textarea editor-textarea--sm" rows="3">{article.excerpt}</textarea>
+        </div>
+        <div class="editor-group">
+          <label class="editor-label">মূল বিষয়বস্তু *</label>
+          <div class="editor-toolbar">
+            <button type="button" class="tb-btn" data-cmd="bold">B</button>
+            <button type="button" class="tb-btn tb-btn--italic" data-cmd="italic">I</button>
+            <button type="button" class="tb-btn" data-cmd="formatBlock" data-val="h2">H2</button>
+            <button type="button" class="tb-btn" data-cmd="formatBlock" data-val="h3">H3</button>
+            <button type="button" class="tb-btn" data-cmd="insertUnorderedList">☰</button>
+          </div>
+          <div id="content-editor" class="content-editor" contenteditable="true" set:html={article.content}></div>
+          <input type="hidden" id="content" name="content" />
+        </div>
+      </div>
+
+      <aside class="editor-sidebar">
+        <div class="sidebar-card">
+          <h3 class="sidebar-card__title">প্রকাশনা</h3>
+          <div class="editor-group">
+            <label class="editor-label">স্ট্যাটাস</label>
+            <select name="status" class="editor-select">
+              <option value="draft" selected={article.status === 'draft'}>ড্রাফট</option>
+              <option value="published" selected={article.status === 'published'}>প্রকাশিত</option>
+              <option value="archived" selected={article.status === 'archived'}>আর্কাইভ</option>
+            </select>
+          </div>
+          <div class="editor-group">
+            <label class="editor-label">প্রকাশের তারিখ</label>
+            <input type="datetime-local" name="published_at" class="editor-input" value={article.published_at?.slice(0, 16)} />
+          </div>
+          <div class="editor-checks">
+            <label class="editor-check"><input type="checkbox" name="is_featured" checked={!!article.is_featured} /> ফিচার্ড</label>
+            <label class="editor-check"><input type="checkbox" name="is_breaking" checked={!!article.is_breaking} /> ব্রেকিং</label>
+          </div>
+          <button type="submit" id="save-btn" class="btn-save">পরিবর্তন সংরক্ষণ করুন</button>
+          <button type="button" id="delete-btn" class="btn-delete">🗑 সংবাদ মুছুন</button>
+        </div>
+
+        <div class="sidebar-card">
+          <h3 class="sidebar-card__title">বিভাগ</h3>
+          <select name="category_id" class="editor-select">
+            <option value="">নির্বাচন করুন</option>
+            {categories.map((c: any) => (
+              <option value={c.id} selected={c.id === article.category_id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div class="sidebar-card">
+          <h3 class="sidebar-card__title">ফিচার্ড ছবি</h3>
+          <input type="url" id="featured_image" name="featured_image" class="editor-input" value={article.featured_image} placeholder="https://..." />
+          {article.featured_image && (
+            <img src={article.featured_image} alt="thumbnail" style="width:100%;border-radius:6px;margin-top:8px;" />
+          )}
+          <input type="file" id="img-upload" accept="image/*" class="editor-file" style="margin-top:6px;" />
+        </div>
+      </aside>
+    </form>
+  </div>
+</AdminLayout>
+
+<script>
+const articleId = document.querySelector('[name="article_id"]')?.getAttribute('value');
+const token = document.cookie.match(/admin_token=([^;]+)/)?.[1];
+const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+
+document.querySelectorAll('.tb-btn[data-cmd]').forEach(btn => {
+  btn.addEventListener('click', (e) => { e.preventDefault(); document.execCommand((btn as HTMLElement).dataset.cmd!, false, (btn as HTMLElement).dataset.val); });
+});
+
+// Image upload
+document.getElementById('img-upload')?.addEventListener('change', async function(this: HTMLInputElement) {
+  const file = this.files?.[0]; if (!file) return;
+  const fd = new FormData(); fd.append('file', file);
+  const resp = await fetch('/api/media/upload', { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd });
+  if (resp.ok) { const { url } = await resp.json() as any; (document.getElementById('featured_image') as HTMLInputElement).value = url; }
+});
+
+// Save
+document.getElementById('edit-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  (document.getElementById('content') as HTMLInputElement).value = document.getElementById('content-editor')!.innerHTML;
+  const fd = new FormData(e.target as HTMLFormElement);
+  const body = { title: fd.get('title'), slug: fd.get('slug'), excerpt: fd.get('excerpt'), content: fd.get('content'), featured_image: fd.get('featured_image'), category_id: fd.get('category_id') ? Number(fd.get('category_id')) : null, status: fd.get('status'), is_featured: fd.get('is_featured') ? 1 : 0, is_breaking: fd.get('is_breaking') ? 1 : 0, published_at: fd.get('published_at') };
+  const btn = document.getElementById('save-btn') as HTMLButtonElement;
+  btn.disabled = true; btn.textContent = 'সংরক্ষণ হচ্ছে…';
+  const resp = await fetch(`/api/articles/${articleId}`, { method: 'PUT', headers, body: JSON.stringify(body) });
+  if (resp.ok) { window.location.href = `?saved=1`; }
+  else { const err = await resp.json() as any; alert('ত্রুটি: ' + err.error); btn.disabled = false; btn.textContent = 'পরিবর্তন সংরক্ষণ করুন'; }
+});
+
+// Delete
+document.getElementById('delete-btn')?.addEventListener('click', async () => {
+  if (!confirm('আপনি কি নিশ্চিত? এই সংবাদটি চিরতরে মুছে যাবে।')) return;
+  const resp = await fetch(`/api/articles/${articleId}`, { method: 'DELETE', headers });
+  if (resp.ok) window.location.href = '/admin/articles';
+  else alert('মুছতে পারা যায়নি।');
+});
+</script>
+
+<style>
+.admin-page { padding: 32px; }
+.admin-page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.admin-page-title { font-size: 22px; font-weight: 700; }
+.btn-ghost { color: #6B7280; text-decoration: none; font-size: 14px; padding: 8px 14px; border: 1px solid #E5E7EB; border-radius: 8px; }
+.save-notice { background: #dcfce7; color: #16a34a; padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 20px; }
+.article-editor { display: grid; grid-template-columns: 1fr 300px; gap: 24px; }
+.editor-main { display: flex; flex-direction: column; gap: 18px; }
+.editor-group { display: flex; flex-direction: column; gap: 6px; }
+.editor-label { font-size: 13px; font-weight: 500; color: #374151; }
+.editor-input { padding: 9px 13px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; font-family: 'Noto Sans Bengali', sans-serif; outline: none; }
+.editor-input:focus { border-color: #F9B200; }
+.editor-input--xl { font-size: 18px; font-weight: 600; padding: 12px 14px; }
+.editor-textarea { padding: 9px 13px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; font-family: 'Noto Sans Bengali', sans-serif; resize: vertical; outline: none; }
+.editor-textarea--sm { min-height: 72px; }
+.editor-select { padding: 9px 13px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; width: 100%; background: #fff; }
+.editor-toolbar { display: flex; gap: 4px; padding: 6px 8px; background: #F9FAFB; border: 1px solid #E5E7EB; border-bottom: none; border-radius: 8px 8px 0 0; }
+.tb-btn { padding: 4px 10px; border: 1px solid #E5E7EB; border-radius: 4px; background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; }
+.tb-btn:hover { background: #F9B200; }
+.tb-btn--italic { font-style: italic; }
+.content-editor { min-height: 400px; padding: 16px; border: 1px solid #E5E7EB; border-radius: 0 0 8px 8px; font-family: 'Noto Sans Bengali', serif; font-size: 16px; line-height: 1.8; outline: none; background: #fff; }
+.content-editor:focus { border-color: #F9B200; }
+.editor-checks { display: flex; flex-direction: column; gap: 8px; }
+.editor-check { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.sidebar-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 18px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; }
+.sidebar-card__title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6B7280; }
+.btn-save { background: #F9B200; color: #000; border: none; padding: 12px; width: 100%; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.btn-delete { background: transparent; color: #ef4444; border: 1px solid #fecaca; padding: 9px; width: 100%; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: inherit; }
+.btn-delete:hover { background: #fef2f2; }
+.editor-file { font-size: 13px; }
+</style>
