@@ -1,18 +1,18 @@
 ---
 // src/pages/[slug].astro — Dynamic Article Detail Page
-// Astro 6: use cloudflare:workers env module (not Astro.locals.runtime)
 import { env } from 'cloudflare:workers';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import ArticleCard from '../components/ArticleCard.astro';
+import { sanitizeHtml } from '../lib/sanitize';
 
 export const prerender = false;
 
 const { slug } = Astro.params;
 const DB = (env as any).DB;
+const CACHE = (env as any).CACHE;
 
-// Astro 6: Cache-Control for CDN edge caching — 5min fresh, 1h stale-while-revalidate
 Astro.response.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
 
 // Fetch article from D1
@@ -30,10 +30,23 @@ const article = await DB.prepare(`
 
 if (!article) return Astro.redirect('/404');
 
-// Increment view count (fire-and-forget)
-DB.prepare('UPDATE articles SET view_count = view_count + 1 WHERE slug = ?').bind(slug).run().catch(() => {});
+// Fix #7: build derived URLs here (not in template)
+const categoryHref = article.category_slug ? `/category/${article.category_slug}` : '/';
+const authorHref   = article.author_slug   ? `/author/${article.author_slug}`   : '#';
 
-// Fetch related articles from same category
+// Fix #1: sanitize HTML to prevent XSS from contenteditable editor
+const safeContent = sanitizeHtml(article.content ?? '');
+
+// Fix #9: IP-based view dedup (1h window via CACHE KV)
+const ip = Astro.request.headers.get('CF-Connecting-IP') ?? 'unknown';
+const viewKey = `view:${article.id}:${ip}`;
+const alreadyViewed = await CACHE?.get(viewKey).catch(() => null);
+if (!alreadyViewed) {
+  DB.prepare('UPDATE articles SET view_count = view_count + 1 WHERE id = ?').bind(article.id).run().catch(() => {});
+  CACHE?.put(viewKey, '1', { expirationTtl: 3600 }).catch(() => {});
+}
+
+// Fetch related articles
 const { results: relatedRows } = await DB.prepare(`
   SELECT a.title, a.slug, a.featured_image, c.name AS category, c.slug AS cat_slug
   FROM articles a
@@ -42,20 +55,19 @@ const { results: relatedRows } = await DB.prepare(`
     SELECT category_id FROM articles WHERE slug = ?
   )
   ORDER BY a.published_at DESC LIMIT 4
-`).bind(slug, slug).all<any>();
+`).bind(slug, slug).all<any>().catch(() => ({ results: [] }));
 
-// Fetch article tags
+// Fetch article tags (graceful if table missing)
 const { results: tagRows } = await DB.prepare(`
   SELECT t.name, t.slug FROM tags t
   JOIN article_tags at ON at.tag_id = t.id
-  JOIN articles a ON at.article_id = a.id
-  WHERE a.slug = ?
-`).bind(slug).all<any>();
+  WHERE at.article_id = ?
+`).bind(article.id).all<any>().catch(() => ({ results: [] }));
 
 const related = (relatedRows ?? []).map((r: any) => ({
   title: r.title,
   href: `/${r.slug}`,
-  image: r.featured_image,
+  image: r.featured_image,   // Fix #7: use featured_image (not image)
   category: r.category,
   categoryHref: `/category/${r.cat_slug}`,
 }));
@@ -73,7 +85,7 @@ const publishedAt = `${toBangla(dateObj.getDate())} ${banglaMonths[dateObj.getMo
 <BaseLayout
   title={`${article.title} | সমকাল`}
   description={article.excerpt}
-  ogImage={article.image}
+  ogImage={article.featured_image}
 >
   <Header />
 
@@ -87,11 +99,11 @@ const publishedAt = `${toBangla(dateObj.getDate())} ${banglaMonths[dateObj.getMo
           <nav class="breadcrumb" aria-label="ব্রেডক্রাম্ব">
             <a href="/">হোম</a>
             <span>›</span>
-            <a href={article.categoryHref}>{article.category}</a>
+            <a href={categoryHref}>{article.category}</a>
           </nav>
 
           <!-- Category -->
-          <a href={article.categoryHref} class="category-badge">{article.category}</a>
+          <a href={categoryHref} class="category-badge">{article.category}</a>
 
           <!-- Title -->
           <h1 class="article-title">{article.title}</h1>
@@ -103,10 +115,10 @@ const publishedAt = `${toBangla(dateObj.getDate())} ${banglaMonths[dateObj.getMo
           <div class="article-meta">
             <div class="article-meta__author">
               <span class="article-meta__label">লেখক:</span>
-              <a href={article.authorHref} class="article-meta__author-name">{article.author}</a>
+              <a href={authorHref} class="article-meta__author-name">{article.author}</a>
             </div>
             <div class="article-meta__divider" aria-hidden="true">|</div>
-            <time class="article-meta__date">{article.publishedAt}</time>
+            <time class="article-meta__date">{publishedAt}</time>
             <div class="article-meta__share">
               <button class="share-btn" aria-label="ফেসবুকে শেয়ার">
                 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
@@ -118,21 +130,21 @@ const publishedAt = `${toBangla(dateObj.getDate())} ${banglaMonths[dateObj.getMo
           </div>
 
           <!-- Featured Image -->
-          {article.image && (
+          {article.featured_image && (
             <figure class="article-figure">
-              <img src={article.image} alt={article.title} />
+              <img src={article.featured_image} alt={article.title} loading="eager" />
             </figure>
           )}
 
-          <!-- Article body -->
-          <div class="article-body" set:html={article.content} />
+          <!-- Article body (Fix #1: sanitized HTML) -->
+          <div class="article-body" set:html={safeContent} />
 
-          <!-- Tags -->
-          {article.tags.length > 0 && (
+          <!-- Tags (Fix #7: use local `tags` variable, not article.tags) -->
+          {tags.length > 0 && (
             <div class="article-tags">
               <span class="article-tags__label">ট্যাগ:</span>
-              {article.tags.map(tag => (
-                <a href={`/tag/${tag}`} class="article-tag">{tag}</a>
+              {tags.map((tag: any) => (
+                <a href={`/tag/${tag.slug}`} class="article-tag">{tag.name}</a>
               ))}
             </div>
           )}

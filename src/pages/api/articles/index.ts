@@ -1,5 +1,5 @@
 // src/pages/api/articles/index.ts
-// Astro 6: use cloudflare:workers env module
+// Fix #11: sanitized errors  Fix #12: input validation  Fix #5: cookie-based auth
 
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
@@ -9,9 +9,12 @@ export const GET: APIRoute = async ({ request }) => {
   const url = new URL(request.url);
   const category = url.searchParams.get('category');
   const status   = url.searchParams.get('status') ?? 'published';
-  const limit    = Math.min(Number(url.searchParams.get('limit') ?? 20), 100);
-  const page     = Math.max(Number(url.searchParams.get('page')  ?? 1), 1);
-  const offset   = (page - 1) * limit;
+  // Fix #12: whitelist status values
+  const allowedStatus = ['published', 'draft', 'archived'];
+  if (!allowedStatus.includes(status)) return Response.json({ error: 'Invalid status' }, { status: 400 });
+  const limit  = Math.min(Number(url.searchParams.get('limit') ?? 20), 100);
+  const page   = Math.max(Number(url.searchParams.get('page')  ?? 1), 1);
+  const offset = (page - 1) * limit;
 
   try {
     let query = `
@@ -41,32 +44,45 @@ export const GET: APIRoute = async ({ request }) => {
       { data: results, meta: { total, page, limit, pages: Math.ceil(total / limit) } },
       { headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' } }
     );
-  } catch (err: any) {
-    return Response.json({ error: err.message }, { status: 500 });
+  } catch (_err) {
+    return Response.json({ error: 'Failed to fetch articles' }, { status: 500 });
   }
 };
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   const SESSION = (env as any).SESSION;
   const DB = (env as any).DB;
-  const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+  // Fix #5: read from httpOnly cookie first, fallback to Authorization header
+  const token = cookies.get('admin_token')?.value 
+    ?? request.headers.get('Authorization')?.replace('Bearer ', '');
   if (!token) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  const session = await SESSION.get(`session:${token}`);
-  if (!session) return Response.json({ error: 'Invalid session' }, { status: 401 });
+  const sessionJson = await SESSION.get(`session:${token}`);
+  if (!sessionJson) return Response.json({ error: 'Invalid session' }, { status: 401 });
+  const user = JSON.parse(sessionJson);
 
   try {
     const body = await request.json() as Record<string, any>;
-    const { title, slug, excerpt, content, featured_image, category_id, author_id, status = 'draft', is_featured = 0, is_breaking = 0, published_at } = body;
+    const { title, slug, excerpt, content, featured_image, category_id, status = 'draft', is_featured = 0, is_breaking = 0, published_at } = body;
+
+    // Fix #12: strict validation
     if (!title || !slug || !content) return Response.json({ error: 'title, slug, content required' }, { status: 400 });
+    if (typeof title !== 'string' || title.length > 500) return Response.json({ error: 'Invalid title' }, { status: 400 });
+    if (!/^[a-z0-9\u0980-\u09FF-]+$/.test(slug)) return Response.json({ error: 'Invalid slug format' }, { status: 400 });
+    if (content.length > 500_000) return Response.json({ error: 'Content too large' }, { status: 413 });
+    const allowedStatus = ['published', 'draft', 'archived'];
+    if (!allowedStatus.includes(status)) return Response.json({ error: 'Invalid status' }, { status: 400 });
+
+    // Fix #8: always set author_id from session
+    const authorId = user.id;
 
     const result = await DB.prepare(
       `INSERT INTO articles (title, slug, excerpt, content, featured_image, category_id, author_id, status, is_featured, is_breaking, published_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(title, slug, excerpt ?? null, content, featured_image ?? null, category_id ?? null, author_id ?? null, status, is_featured, is_breaking, published_at ?? null).run();
+    ).bind(title, slug, excerpt ?? null, content, featured_image ?? null, category_id ?? null, authorId, status, is_featured ? 1 : 0, is_breaking ? 1 : 0, published_at ?? null).run();
 
     return Response.json({ id: (result as any).meta.last_row_id, slug }, { status: 201 });
   } catch (err: any) {
     if (err.message?.includes('UNIQUE')) return Response.json({ error: 'Slug already exists' }, { status: 409 });
-    return Response.json({ error: err.message }, { status: 500 });
+    return Response.json({ error: 'Failed to create article' }, { status: 500 });
   }
 };

@@ -1,0 +1,39 @@
+---
+// src/components/AdSlot.astro
+// Fix #15: Reusable AdSlot component (was missing from plan)
+const { variant = 'banner', label = 'বিজ্ঞাপন' } = Astro.props as { variant?: 'banner' | 'sidebar' | 'inline' | 'leaderboard', label?: string };
+
+const dimensions: Record<string, { w: number; h: number }> = {
+  banner:      { w: 728, h: 90 },
+  sidebar:     { w: 300, h: 250 },
+  inline:      { w: 468, h: 60 },
+  leaderboard: { w: 970, h: 90 },
+};
+const dim = dimensions[variant] ?? dimensions.banner;
+---
+<div class:list={['ad-slot', `ad-slot--${variant}`]} role="complementary" aria-label="বিজ্ঞাপন">
+  <div class="ad-slot__inner" style={`min-height:${dim.h}px;`}>
+    <span class="ad-slot__label">{label}</span>
+  </div>
+</div>
+
+<style>
+.ad-slot { width: 100%; margin: var(--space-4) 0; }
+.ad-slot__inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F9FAFB;
+  border: 1px dashed #D1D5DB;
+  border-radius: var(--border-radius);
+}
+.ad-slot__label {
+  font-size: 11px;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.ad-slot--sidebar .ad-slot__inner { min-height: 250px; }
+.ad-slot--banner .ad-slot__inner  { min-height: 90px; }
+.ad-slot--inline .ad-slot__inner  { min-height: 60px; }
+</style>
